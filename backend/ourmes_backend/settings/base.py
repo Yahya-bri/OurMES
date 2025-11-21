@@ -46,6 +46,9 @@ INSTALLED_APPS = [
     'mes.plugins.routing',
     'mes.plugins.production_counting',
     'mes.plugins.scheduling',
+    'mes.plugins.inventory',
+    'mes.plugins.maintenance',
+    'mes.plugins.quality',
 ]
 
 

@@ -3,23 +3,42 @@
     <div class="page-header">
       <h1>Production Scheduling</h1>
       <div class="header-actions">
-        <el-button type="primary" @click="showGenerateDialog = true" :icon="Calendar">
+        <el-button
+          type="primary"
+          @click="showGenerateDialog = true"
+          :icon="Calendar"
+        >
           Generate Schedule
         </el-button>
-        <el-button @click="optimizeSchedule" :icon="Connection" :loading="optimizing">
-          Optimize
+        <el-button
+          @click="optimizeSchedule"
+          :icon="Connection"
+          :loading="optimizing"
+        >
+          Optimize (Finite Capacity)
         </el-button>
-        <el-button @click="checkConflicts" :icon="Warning" :loading="checkingConflicts">
+        <el-button
+          @click="checkConflicts"
+          :icon="Warning"
+          :loading="checkingConflicts"
+        >
           Check Conflicts
         </el-button>
-        <el-dropdown @command="handleExport" style="margin-left: 10px;">
+        <el-switch
+          v-model="showMaintenance"
+          active-text="Show Maintenance Blocks"
+          style="margin-left: 10px"
+        />
+        <el-dropdown @command="handleExport" style="margin-left: 10px">
           <el-button :icon="Download">
             Export <el-icon class="el-icon--right"><arrow-down /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="csv">Export as CSV</el-dropdown-item>
-              <el-dropdown-item command="excel">Export as Excel</el-dropdown-item>
+              <el-dropdown-item command="excel"
+                >Export as Excel</el-dropdown-item
+              >
               <el-dropdown-item command="pdf">Export as PDF</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -77,48 +96,52 @@
           <div class="sidebar-header">
             <span class="sidebar-title">Orders</span>
             <el-button text @click="selectAllOrders" size="small">
-              {{ selectedOrders.length === orders.length ? 'Deselect All' : 'Select All' }}
+              {{
+                selectedOrders.length === orders.length
+                  ? "Deselect All"
+                  : "Select All"
+              }}
             </el-button>
           </div>
         </template>
-        
+
         <div class="order-filters">
-          <el-input 
-            v-model="orderSearchText" 
-            placeholder="Search orders..." 
-            clearable 
+          <el-input
+            v-model="orderSearchText"
+            placeholder="Search orders..."
+            clearable
             size="small"
             :prefix-icon="Search"
           />
-          <el-select 
-            v-model="orderStatusFilter" 
-            placeholder="Status" 
-            clearable 
+          <el-select
+            v-model="orderStatusFilter"
+            placeholder="Status"
+            clearable
             size="small"
-            style="margin-top: 8px; width: 100%;"
+            style="margin-top: 8px; width: 100%"
           >
             <el-option label="All" value="" />
             <el-option label="Pending" value="pending" />
             <el-option label="In Progress" value="in_progress" />
             <el-option label="Completed" value="completed" />
           </el-select>
-          
-          <el-select 
-            v-model="productionLineFilter" 
-            placeholder="Production Line" 
-            clearable 
+
+          <el-select
+            v-model="productionLineFilter"
+            placeholder="Production Line"
+            clearable
             size="small"
-            style="margin-top: 8px; width: 100%;"
+            style="margin-top: 8px; width: 100%"
           >
             <el-option label="All Lines" value="" />
-            <el-option 
-              v-for="line in productionLines" 
-              :key="line.id" 
-              :label="line.name" 
-              :value="line.id" 
+            <el-option
+              v-for="line in productionLines"
+              :key="line.id"
+              :label="line.name"
+              :value="line.id"
             />
           </el-select>
-          
+
           <el-date-picker
             v-model="dateRangeFilter"
             type="daterange"
@@ -126,20 +149,20 @@
             start-placeholder="Start date"
             end-placeholder="End date"
             size="small"
-            style="margin-top: 8px; width: 100%;"
+            style="margin-top: 8px; width: 100%"
             @change="applyDateFilter"
           />
         </div>
 
         <div class="orders-list" v-loading="loadingOrders">
-          <div 
-            v-for="order in filteredOrders" 
+          <div
+            v-for="order in filteredOrders"
             :key="order.id"
             class="order-item"
-            :class="{ 'selected': selectedOrders.includes(order.id) }"
+            :class="{ selected: selectedOrders.includes(order.id) }"
             @click="toggleOrderSelection(order.id)"
           >
-            <el-checkbox 
+            <el-checkbox
               :model-value="selectedOrders.includes(order.id)"
               @change="toggleOrderSelection(order.id)"
               @click.stop
@@ -151,7 +174,9 @@
                 <el-tag :type="getStatusType(order.state)" size="small">
                   {{ order.state }}
                 </el-tag>
-                <span class="order-quantity">Qty: {{ order.planned_quantity }}</span>
+                <span class="order-quantity"
+                  >Qty: {{ order.planned_quantity }}</span
+                >
               </div>
               <div v-if="order.deadline" class="order-deadline">
                 <el-icon><Clock /></el-icon>
@@ -165,9 +190,9 @@
                 placement="top"
               >
                 <span>
-                  <el-button 
-                    text 
-                    type="primary" 
+                  <el-button
+                    text
+                    type="primary"
                     size="small"
                     :disabled="!order.technology"
                     @click.stop="generateForOrder(order)"
@@ -177,39 +202,53 @@
                   </el-button>
                 </span>
               </el-tooltip>
-              <el-button 
+              <el-button
                 v-else
-                text 
-                type="primary" 
+                text
+                type="primary"
                 size="small"
                 @click.stop="generateForOrder(order)"
                 :loading="generatingOrder === order.id"
               >
                 Generate
               </el-button>
-              <el-dropdown @command="handleOrderAction($event, order.id)" trigger="click">
+              <el-dropdown
+                @command="handleOrderAction($event, order.id)"
+                trigger="click"
+              >
                 <el-button text size="small" :icon="MoreFilled" />
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="view">View Details</el-dropdown-item>
-                    <el-dropdown-item command="clear">Clear Schedule</el-dropdown-item>
-                    <el-dropdown-item command="lock">Lock Tasks</el-dropdown-item>
-                    <el-dropdown-item command="unlock">Unlock Tasks</el-dropdown-item>
+                    <el-dropdown-item command="view"
+                      >View Details</el-dropdown-item
+                    >
+                    <el-dropdown-item command="clear"
+                      >Clear Schedule</el-dropdown-item
+                    >
+                    <el-dropdown-item command="lock"
+                      >Lock Tasks</el-dropdown-item
+                    >
+                    <el-dropdown-item command="unlock"
+                      >Unlock Tasks</el-dropdown-item
+                    >
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
             </div>
           </div>
-          
-          <el-empty 
-            v-if="filteredOrders.length === 0" 
+
+          <el-empty
+            v-if="filteredOrders.length === 0"
             description="No orders found"
             :image-size="100"
           />
         </div>
 
         <div class="sidebar-footer">
-          <el-statistic title="Selected Orders" :value="selectedOrders.length" />
+          <el-statistic
+            title="Selected Orders"
+            :value="selectedOrders.length"
+          />
           <el-statistic title="Total Tasks" :value="ganttTasks.length" />
         </div>
       </el-card>
@@ -226,37 +265,37 @@
               </el-radio-group>
             </div>
             <div class="gantt-controls-right">
-              <el-select 
-                v-model="workstationFilter" 
-                placeholder="Filter by Workstation" 
-                clearable 
+              <el-select
+                v-model="workstationFilter"
+                placeholder="Filter by Workstation"
+                clearable
                 size="small"
-                style="width: 200px;"
+                style="width: 200px"
               >
                 <el-option label="All Workstations" value="" />
-                <el-option 
-                  v-for="ws in workstations" 
-                  :key="ws.id" 
-                  :label="ws.name" 
-                  :value="ws.id" 
+                <el-option
+                  v-for="ws in workstations"
+                  :key="ws.id"
+                  :label="ws.name"
+                  :value="ws.id"
                 />
               </el-select>
-              
-              <el-button 
-                v-if="selectedTasks.length > 0" 
-                size="small" 
+
+              <el-button
+                v-if="selectedTasks.length > 0"
+                size="small"
                 type="primary"
                 @click="showBulkEditDialog = true"
-                style="margin-left: 10px;"
+                style="margin-left: 10px"
               >
                 Bulk Edit ({{ selectedTasks.length }})
               </el-button>
             </div>
           </div>
-          
+
           <div class="gantt-wrapper" v-loading="loadingSchedule">
             <!-- Gantt Chart View -->
-            <GanttChart 
+            <GanttChart
               v-if="viewMode === 'gantt' && ganttTasks.length > 0"
               :tasks="filteredTasks"
               :orders="orders"
@@ -264,18 +303,30 @@
               @task-selected="handleTaskSelected"
               @tasks-selected="handleTasksSelected"
             />
-            
+
             <!-- List View -->
-            <div v-else-if="viewMode === 'list' && ganttTasks.length > 0" class="list-view">
-              <el-table 
-                :data="filteredTasks" 
-                style="width: 100%;"
+            <div
+              v-else-if="viewMode === 'list' && ganttTasks.length > 0"
+              class="list-view"
+            >
+              <el-table
+                :data="filteredTasks"
+                style="width: 100%"
                 @selection-change="handleTasksSelected"
               >
                 <el-table-column type="selection" width="55" />
                 <el-table-column prop="orderNumber" label="Order" width="120" />
-                <el-table-column prop="name" label="Operation" min-width="200" />
-                <el-table-column prop="sequenceIndex" label="Sequence" width="100" align="center" />
+                <el-table-column
+                  prop="name"
+                  label="Operation"
+                  min-width="200"
+                />
+                <el-table-column
+                  prop="sequenceIndex"
+                  label="Sequence"
+                  width="100"
+                  align="center"
+                />
                 <el-table-column label="Start" width="160">
                   <template #default="scope">
                     {{ formatDateTime(scope.row.start) }}
@@ -293,36 +344,47 @@
                 </el-table-column>
                 <el-table-column label="Status" width="100">
                   <template #default="scope">
-                    <el-tag v-if="scope.row.locked" type="warning" size="small">Locked</el-tag>
+                    <el-tag v-if="scope.row.locked" type="warning" size="small"
+                      >Locked</el-tag
+                    >
                     <el-tag v-else type="success" size="small">Active</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="Actions" width="150" fixed="right">
                   <template #default="scope">
-                    <el-button size="small" @click="handleTaskSelected(scope.row.id)">
+                    <el-button
+                      size="small"
+                      @click="handleTaskSelected(scope.row.id)"
+                    >
                       Edit
                     </el-button>
-                    <el-button size="small" type="danger" @click="deleteTaskById(scope.row.id)">
+                    <el-button
+                      size="small"
+                      type="danger"
+                      @click="deleteTaskById(scope.row.id)"
+                    >
                       Delete
                     </el-button>
                   </template>
                 </el-table-column>
               </el-table>
             </div>
-            
+
             <!-- Calendar View -->
             <div v-else-if="viewMode === 'calendar'" class="calendar-view">
               <el-calendar v-model="calendarDate">
                 <template #date-cell="{ data }">
                   <div class="calendar-day">
-                    <div class="day-number">{{ data.day.split('-').slice(2) }}</div>
+                    <div class="day-number">
+                      {{ data.day.split("-").slice(2) }}
+                    </div>
                     <div class="day-tasks">
-                      <el-tag 
-                        v-for="task in getTasksForDate(data.day)" 
+                      <el-tag
+                        v-for="task in getTasksForDate(data.day)"
                         :key="task.id"
                         size="small"
                         :type="task.locked ? 'warning' : 'primary'"
-                        style="margin: 2px; font-size: 10px;"
+                        style="margin: 2px; font-size: 10px"
                         @click="handleTaskSelected(task.id)"
                       >
                         {{ task.shortName }}
@@ -332,8 +394,8 @@
                 </template>
               </el-calendar>
             </div>
-            
-            <el-empty 
+
+            <el-empty
               v-else
               description="No schedule data. Select orders and generate schedule."
               :image-size="200"
@@ -371,7 +433,9 @@
             {{ formatDuration(selectedTaskData.duration) }}
           </el-descriptions-item>
           <el-descriptions-item label="Status">
-            <el-tag v-if="selectedTaskData.locked" type="warning">Locked</el-tag>
+            <el-tag v-if="selectedTaskData.locked" type="warning"
+              >Locked</el-tag
+            >
             <el-tag v-else type="success">Editable</el-tag>
           </el-descriptions-item>
         </el-descriptions>
@@ -380,18 +444,18 @@
 
         <el-form label-position="top">
           <el-form-item label="Planned Start">
-            <el-date-picker 
-              v-model="editTaskForm.start" 
-              type="datetime" 
-              style="width: 100%;"
+            <el-date-picker
+              v-model="editTaskForm.start"
+              type="datetime"
+              style="width: 100%"
               :disabled="selectedTaskData.locked"
             />
           </el-form-item>
           <el-form-item label="Planned End">
-            <el-date-picker 
-              v-model="editTaskForm.end" 
-              type="datetime" 
-              style="width: 100%;"
+            <el-date-picker
+              v-model="editTaskForm.end"
+              type="datetime"
+              style="width: 100%"
               :disabled="selectedTaskData.locked"
             />
           </el-form-item>
@@ -399,9 +463,9 @@
             <el-switch v-model="editTaskForm.locked" />
           </el-form-item>
           <el-form-item label="Notes">
-            <el-input 
-              v-model="editTaskForm.description" 
-              type="textarea" 
+            <el-input
+              v-model="editTaskForm.description"
+              type="textarea"
               :rows="4"
               placeholder="Add notes or description..."
             />
@@ -409,10 +473,18 @@
         </el-form>
 
         <div class="task-actions">
-          <el-button type="primary" @click="saveTaskChanges" style="width: 100%;">
+          <el-button
+            type="primary"
+            @click="saveTaskChanges"
+            style="width: 100%"
+          >
             Save Changes
           </el-button>
-          <el-button type="danger" @click="deleteTask" style="width: 100%; margin-top: 8px;">
+          <el-button
+            type="danger"
+            @click="deleteTask"
+            style="width: 100%; margin-top: 8px"
+          >
             Delete Task
           </el-button>
         </div>
@@ -420,39 +492,47 @@
     </el-drawer>
 
     <!-- Generate Schedule Dialog -->
-    <el-dialog v-model="showGenerateDialog" title="Generate Production Schedule" width="600px">
+    <el-dialog
+      v-model="showGenerateDialog"
+      title="Generate Production Schedule"
+      width="600px"
+    >
       <el-form label-width="140px">
         <el-form-item label="Orders">
-          <el-select 
-            v-model="generateForm.orderIds" 
-            multiple 
-            filterable 
+          <el-select
+            v-model="generateForm.orderIds"
+            multiple
+            filterable
             placeholder="Select one or more orders"
-            style="width: 100%;"
+            style="width: 100%"
           >
-            <el-option 
-              v-for="order in orders" 
-              :key="order.id" 
-              :label="`${order.number} - ${order.name}`" 
-              :value="order.id" 
+            <el-option
+              v-for="order in orders"
+              :key="order.id"
+              :label="`${order.number} - ${order.name}`"
+              :value="order.id"
             />
           </el-select>
-          <div style="margin-top: 8px;">
-            <el-button text size="small" @click="generateForm.orderIds = selectedOrders">
+          <div style="margin-top: 8px">
+            <el-button
+              text
+              size="small"
+              @click="generateForm.orderIds = selectedOrders"
+            >
               Use Selected ({{ selectedOrders.length }})
             </el-button>
           </div>
         </el-form-item>
-        
+
         <el-form-item label="Start Date">
-          <el-date-picker 
-            v-model="generateForm.startDate" 
-            type="datetime" 
-            style="width: 100%;"
+          <el-date-picker
+            v-model="generateForm.startDate"
+            type="datetime"
+            style="width: 100%"
             placeholder="Leave empty for now"
           />
         </el-form-item>
-        
+
         <el-form-item label="Clear Existing">
           <el-switch v-model="generateForm.clearExisting" />
           <div class="form-help-text">
@@ -467,12 +547,12 @@
           </el-radio-group>
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <el-button @click="showGenerateDialog = false">Cancel</el-button>
-        <el-button 
-          type="primary" 
-          @click="handleGenerateMultiSchedule" 
+        <el-button
+          type="primary"
+          @click="handleGenerateMultiSchedule"
           :loading="generating"
         >
           Generate Schedule
@@ -481,90 +561,130 @@
     </el-dialog>
 
     <!-- Bulk Edit Dialog -->
-    <el-dialog v-model="showBulkEditDialog" title="Bulk Edit Tasks" width="500px">
+    <el-dialog
+      v-model="showBulkEditDialog"
+      title="Bulk Edit Tasks"
+      width="500px"
+    >
       <el-form label-width="140px">
         <el-form-item label="Shift Start By">
-          <el-input-number 
-            v-model="bulkEditForm.shiftHours" 
-            :min="-240" 
+          <el-input-number
+            v-model="bulkEditForm.shiftHours"
+            :min="-240"
             :max="240"
-            style="width: 100%;"
+            style="width: 100%"
           />
-          <div class="form-help-text">Hours to shift all selected tasks (negative for earlier)</div>
+          <div class="form-help-text">
+            Hours to shift all selected tasks (negative for earlier)
+          </div>
         </el-form-item>
-        
+
         <el-form-item label="Lock Tasks">
           <el-switch v-model="bulkEditForm.locked" />
         </el-form-item>
-        
+
         <el-form-item label="Add Note">
-          <el-input 
-            v-model="bulkEditForm.note" 
-            type="textarea" 
+          <el-input
+            v-model="bulkEditForm.note"
+            type="textarea"
             :rows="3"
             placeholder="Add a note to all selected tasks..."
           />
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <el-button @click="showBulkEditDialog = false">Cancel</el-button>
-        <el-button type="primary" @click="applyBulkEdit" :loading="applyingBulk">
+        <el-button
+          type="primary"
+          @click="applyBulkEdit"
+          :loading="applyingBulk"
+        >
           Apply to {{ selectedTasks.length }} Tasks
         </el-button>
       </template>
     </el-dialog>
 
     <!-- Conflicts Dialog -->
-    <el-dialog v-model="showConflictsDialog" title="Schedule Conflicts" width="700px">
-      <el-alert 
+    <el-dialog
+      v-model="showConflictsDialog"
+      title="Schedule Conflicts"
+      width="700px"
+    >
+      <el-alert
         v-if="conflicts.length === 0"
         title="No conflicts found"
         type="success"
         :closable="false"
         show-icon
       />
-      
+
       <div v-else>
-        <el-alert 
+        <el-alert
           title="Conflicts Detected"
           :description="`Found ${conflicts.length} scheduling conflicts that need attention.`"
           type="warning"
           :closable="false"
           show-icon
-          style="margin-bottom: 15px;"
+          style="margin-bottom: 15px"
         />
-        
+
         <div class="conflicts-list">
-          <el-card 
-            v-for="(conflict, idx) in conflicts" 
+          <el-card
+            v-for="(conflict, idx) in conflicts"
             :key="idx"
             shadow="hover"
-            style="margin-bottom: 10px;"
+            style="margin-bottom: 10px"
           >
             <div class="conflict-item">
               <div class="conflict-header">
-                <el-tag type="danger" size="small">Conflict #{{ idx + 1 }}</el-tag>
-                <span class="conflict-type">{{ formatConflictType(conflict.type) }}</span>
+                <el-tag type="danger" size="small"
+                  >Conflict #{{ idx + 1 }}</el-tag
+                >
+                <span class="conflict-type">{{
+                  formatConflictType(conflict.type)
+                }}</span>
               </div>
               <div class="conflict-details">
-                <div><strong>Task 1:</strong> {{ conflict.task1.operation }} (Order: {{ conflict.task1.order }})</div>
-                <div><strong>Time:</strong> {{ formatDateTime(conflict.task1.start) }} - {{ formatDateTime(conflict.task1.end) }}</div>
-                <div><strong>Task 2:</strong> {{ conflict.task2.operation }} (Order: {{ conflict.task2.order }})</div>
-                <div><strong>Time:</strong> {{ formatDateTime(conflict.task2.start) }} - {{ formatDateTime(conflict.task2.end) }}</div>
-                <div><strong>Overlap:</strong> {{ formatDateTime(conflict.overlap_start) }} - {{ formatDateTime(conflict.overlap_end) }}</div>
-                <div v-if="conflict.resource"><strong>Resource:</strong> {{ conflict.resource }}</div>
+                <div>
+                  <strong>Task 1:</strong>
+                  {{ conflict.task1.operation }} (Order:
+                  {{ conflict.task1.order }})
+                </div>
+                <div>
+                  <strong>Time:</strong>
+                  {{ formatDateTime(conflict.task1.start) }} -
+                  {{ formatDateTime(conflict.task1.end) }}
+                </div>
+                <div>
+                  <strong>Task 2:</strong>
+                  {{ conflict.task2.operation }} (Order:
+                  {{ conflict.task2.order }})
+                </div>
+                <div>
+                  <strong>Time:</strong>
+                  {{ formatDateTime(conflict.task2.start) }} -
+                  {{ formatDateTime(conflict.task2.end) }}
+                </div>
+                <div>
+                  <strong>Overlap:</strong>
+                  {{ formatDateTime(conflict.overlap_start) }} -
+                  {{ formatDateTime(conflict.overlap_end) }}
+                </div>
+                <div v-if="conflict.resource">
+                  <strong>Resource:</strong> {{ conflict.resource }}
+                </div>
               </div>
             </div>
           </el-card>
         </div>
       </div>
-      
+
       <template #footer>
         <el-button @click="showConflictsDialog = false">Close</el-button>
-        <el-button 
-          v-if="conflicts.length > 0" 
-          type="primary" 
+        <el-button
+          v-if="conflicts.length > 0"
+          type="primary"
           @click="autoResolveConflicts"
         >
           Auto Resolve
@@ -575,26 +695,36 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { 
-  Calendar, Connection, Refresh, Search, MoreFilled, Download, 
-  ArrowDown, Warning, Clock 
-} from '@element-plus/icons-vue';
-import GanttChart from '@/components/GanttChart.vue';
-import { 
-  getScheduling, 
+import { ref, computed, onMounted, watch } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  Calendar,
+  Connection,
+  Refresh,
+  Search,
+  MoreFilled,
+  Download,
+  ArrowDown,
+  Warning,
+  Clock,
+} from "@element-plus/icons-vue";
+import GanttChart from "@/components/GanttChart.vue";
+import {
+  getScheduling,
   generateSchedule,
-  generateMultiOrderSchedule, 
-  updateScheduleItem, 
+  generateMultiOrderSchedule,
+  updateScheduleItem,
   bulkUpdateSchedule,
   deleteScheduleItem,
   deleteScheduleByOrder,
   optimizeSchedule as optimizeScheduleAPI,
-  checkConflicts as checkConflictsAPI
-} from '../services/schedulingService';
-import { getOrders } from '@/modules/orders/services/ordersService';
-import { getProductionLines, getWorkstations } from '@/modules/basic-data/services/basicDataService';
+  checkConflicts as checkConflictsAPI,
+} from "../services/schedulingService";
+import { getOrders } from "@/modules/orders/services/ordersService";
+import {
+  getProductionLines,
+  getWorkstations,
+} from "@/modules/basic-data/services/basicDataService";
 
 // Data refs
 const orders = ref([]);
@@ -610,7 +740,7 @@ const stats = ref({
   total: 0,
   scheduled: 0,
   conflicts: 0,
-  utilization: 0
+  utilization: 0,
 });
 
 // UI state
@@ -622,17 +752,18 @@ const optimizing = ref(false);
 const checkingConflicts = ref(false);
 const applyingBulk = ref(false);
 const showGenerateDialog = ref(false);
+const showMaintenance = ref(true);
 const showTaskDetails = ref(false);
 const showBulkEditDialog = ref(false);
 const showConflictsDialog = ref(false);
-const viewMode = ref('gantt');
+const viewMode = ref("gantt");
 const calendarDate = ref(new Date());
 
 // Filters
-const orderSearchText = ref('');
-const orderStatusFilter = ref('');
-const productionLineFilter = ref('');
-const workstationFilter = ref('');
+const orderSearchText = ref("");
+const orderStatusFilter = ref("");
+const productionLineFilter = ref("");
+const workstationFilter = ref("");
 const dateRangeFilter = ref(null);
 
 // Forms
@@ -640,60 +771,69 @@ const generateForm = ref({
   orderIds: [],
   startDate: null,
   clearExisting: true,
-  algorithm: 'sequential'
+  algorithm: "sequential",
 });
 
 const editTaskForm = ref({
   start: null,
   end: null,
   locked: false,
-  description: ''
+  description: "",
 });
 
 const bulkEditForm = ref({
   shiftHours: 0,
   locked: false,
-  note: ''
+  note: "",
 });
 
 // Computed
 const filteredOrders = computed(() => {
   let filtered = orders.value;
-  
+
   // Search filter
   if (orderSearchText.value) {
     const search = orderSearchText.value.toLowerCase();
-    filtered = filtered.filter(order => 
-      order.number.toLowerCase().includes(search) ||
-      order.name.toLowerCase().includes(search)
+    filtered = filtered.filter(
+      (order) =>
+        order.number.toLowerCase().includes(search) ||
+        order.name.toLowerCase().includes(search)
     );
   }
-  
+
   // Status filter
   if (orderStatusFilter.value) {
-    filtered = filtered.filter(order => order.state === orderStatusFilter.value);
+    filtered = filtered.filter(
+      (order) => order.state === orderStatusFilter.value
+    );
   }
-  
+
   // Production line filter
   if (productionLineFilter.value) {
-    filtered = filtered.filter(order => order.production_line === productionLineFilter.value);
+    filtered = filtered.filter(
+      (order) => order.production_line === productionLineFilter.value
+    );
   }
-  
+
   // Date range filter
-  if (dateRangeFilter.value && dateRangeFilter.value[0] && dateRangeFilter.value[1]) {
+  if (
+    dateRangeFilter.value &&
+    dateRangeFilter.value[0] &&
+    dateRangeFilter.value[1]
+  ) {
     const [start, end] = dateRangeFilter.value;
-    filtered = filtered.filter(order => {
+    filtered = filtered.filter((order) => {
       if (!order.deadline) return true;
       const deadline = new Date(order.deadline);
       return deadline >= start && deadline <= end;
     });
   }
-  
+
   return filtered;
 });
 
 const ganttTasks = computed(() => {
-  return scheduleItems.value.map(item => ({
+  return scheduleItems.value.map((item) => ({
     id: item.id,
     name: item.component_name || `Operation ${item.component}`,
     shortName: item.component_name?.substring(0, 15) || `Op ${item.component}`,
@@ -704,36 +844,38 @@ const ganttTasks = computed(() => {
     orderNumber: item.order_number,
     sequenceIndex: item.sequence_index,
     locked: item.locked || false,
-    description: item.description || '',
-    workstation: item.workstation
+    description: item.description || "",
+    workstation: item.workstation,
   }));
 });
 
 const filteredTasks = computed(() => {
   let filtered = ganttTasks.value;
-  
+
   // Workstation filter
   if (workstationFilter.value) {
-    filtered = filtered.filter(task => task.workstation === workstationFilter.value);
+    filtered = filtered.filter(
+      (task) => task.workstation === workstationFilter.value
+    );
   }
-  
+
   return filtered;
 });
 
 // Methods
 const calculateStats = () => {
   const total = ganttTasks.value.length;
-  const scheduled = ganttTasks.value.filter(t => t.start && t.end).length;
+  const scheduled = ganttTasks.value.filter((t) => t.start && t.end).length;
   const conflictsCount = conflicts.value.length;
-  
+
   // Simple utilization calculation (scheduled tasks / total)
   const utilization = total > 0 ? Math.round((scheduled / total) * 100) : 0;
-  
+
   stats.value = {
     total,
     scheduled,
     conflicts: conflictsCount,
-    utilization
+    utilization,
   };
 };
 
@@ -743,7 +885,7 @@ const loadOrders = async () => {
     const data = await getOrders({});
     orders.value = data.results || data;
   } catch (error) {
-    ElMessage.error('Failed to load orders');
+    ElMessage.error("Failed to load orders");
     console.error(error);
   } finally {
     loadingOrders.value = false;
@@ -755,7 +897,7 @@ const loadProductionLines = async () => {
     const data = await getProductionLines();
     productionLines.value = data.results || data;
   } catch (error) {
-    console.error('Failed to load production lines:', error);
+    console.error("Failed to load production lines:", error);
   }
 };
 
@@ -764,7 +906,7 @@ const loadWorkstations = async () => {
     const data = await getWorkstations();
     workstations.value = data.results || data;
   } catch (error) {
-    console.error('Failed to load workstations:', error);
+    console.error("Failed to load workstations:", error);
   }
 };
 
@@ -773,13 +915,13 @@ const loadSchedule = async () => {
   try {
     const params = {};
     if (selectedOrders.value.length > 0) {
-      params.order__in = selectedOrders.value.join(',');
+      params.order__in = selectedOrders.value.join(",");
     }
     const data = await getScheduling(params);
     scheduleItems.value = data.results || data;
     calculateStats();
   } catch (error) {
-    ElMessage.error('Failed to load schedule');
+    ElMessage.error("Failed to load schedule");
     console.error(error);
   } finally {
     loadingSchedule.value = false;
@@ -808,22 +950,22 @@ const selectAllOrders = () => {
   if (selectedOrders.value.length === orders.value.length) {
     selectedOrders.value = [];
   } else {
-    selectedOrders.value = orders.value.map(o => o.id);
+    selectedOrders.value = orders.value.map((o) => o.id);
   }
 };
 
 const generateForOrder = async (order) => {
   if (!order.technology) {
-    ElMessage.warning('Order has no routing assigned');
+    ElMessage.warning("Order has no routing assigned");
     return;
   }
   generatingOrder.value = order.id;
   try {
     await generateSchedule(order.id);
-    ElMessage.success('Schedule generated successfully');
+    ElMessage.success("Schedule generated successfully");
     loadSchedule();
   } catch (error) {
-    ElMessage.error('Failed to generate schedule');
+    ElMessage.error("Failed to generate schedule");
     console.error(error);
   } finally {
     generatingOrder.value = null;
@@ -832,10 +974,10 @@ const generateForOrder = async (order) => {
 
 const handleGenerateMultiSchedule = async () => {
   if (generateForm.value.orderIds.length === 0) {
-    ElMessage.warning('Please select at least one order');
+    ElMessage.warning("Please select at least one order");
     return;
   }
-  
+
   generating.value = true;
   try {
     // Clear existing if requested
@@ -848,16 +990,16 @@ const handleGenerateMultiSchedule = async () => {
         }
       }
     }
-    
+
     // Generate new schedule
     const startDate = generateForm.value.startDate?.toISOString() || null;
     await generateMultiOrderSchedule(generateForm.value.orderIds, startDate);
-    
-    ElMessage.success('Schedule generated successfully');
+
+    ElMessage.success("Schedule generated successfully");
     showGenerateDialog.value = false;
     loadSchedule();
   } catch (error) {
-    ElMessage.error('Failed to generate schedule');
+    ElMessage.error("Failed to generate schedule");
     console.error(error);
   } finally {
     generating.value = false;
@@ -868,12 +1010,12 @@ const handleTaskUpdate = async (update) => {
   try {
     await updateScheduleItem(update.id, {
       planned_start: update.start,
-      planned_end: update.end
+      planned_end: update.end,
     });
-    ElMessage.success('Task updated');
+    ElMessage.success("Task updated");
     loadSchedule();
   } catch (error) {
-    ElMessage.error('Failed to update task');
+    ElMessage.error("Failed to update task");
     console.error(error);
   }
 };
@@ -881,14 +1023,14 @@ const handleTaskUpdate = async (update) => {
 const handleTaskSelected = (taskId) => {
   selectedTask.value = taskId;
   if (taskId) {
-    const task = ganttTasks.value.find(t => t.id === taskId);
+    const task = ganttTasks.value.find((t) => t.id === taskId);
     if (task) {
       selectedTaskData.value = task;
       editTaskForm.value = {
         start: new Date(task.start),
         end: new Date(task.end),
         locked: task.locked,
-        description: task.description
+        description: task.description,
       };
       showTaskDetails.value = true;
     }
@@ -907,13 +1049,13 @@ const saveTaskChanges = async () => {
       planned_start: editTaskForm.value.start.toISOString(),
       planned_end: editTaskForm.value.end.toISOString(),
       locked: editTaskForm.value.locked,
-      description: editTaskForm.value.description
+      description: editTaskForm.value.description,
     });
-    ElMessage.success('Task updated successfully');
+    ElMessage.success("Task updated successfully");
     loadSchedule();
     showTaskDetails.value = false;
   } catch (error) {
-    ElMessage.error('Failed to update task');
+    ElMessage.error("Failed to update task");
     console.error(error);
   }
 };
@@ -921,22 +1063,22 @@ const saveTaskChanges = async () => {
 const deleteTask = async () => {
   try {
     await ElMessageBox.confirm(
-      'Are you sure you want to delete this task?',
-      'Warning',
+      "Are you sure you want to delete this task?",
+      "Warning",
       {
-        confirmButtonText: 'Delete',
-        cancelButtonText: 'Cancel',
-        type: 'warning'
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
+        type: "warning",
       }
     );
-    
+
     await deleteScheduleItem(selectedTaskData.value.id);
-    ElMessage.success('Task deleted');
+    ElMessage.success("Task deleted");
     loadSchedule();
     showTaskDetails.value = false;
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('Failed to delete task');
+    if (error !== "cancel") {
+      ElMessage.error("Failed to delete task");
       console.error(error);
     }
   }
@@ -945,46 +1087,46 @@ const deleteTask = async () => {
 const deleteTaskById = async (taskId) => {
   try {
     await ElMessageBox.confirm(
-      'Are you sure you want to delete this task?',
-      'Warning',
-      { type: 'warning' }
+      "Are you sure you want to delete this task?",
+      "Warning",
+      { type: "warning" }
     );
-    
+
     await deleteScheduleItem(taskId);
-    ElMessage.success('Task deleted');
+    ElMessage.success("Task deleted");
     loadSchedule();
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('Failed to delete task');
+    if (error !== "cancel") {
+      ElMessage.error("Failed to delete task");
     }
   }
 };
 
 const handleOrderAction = async (command, orderId) => {
   switch (command) {
-    case 'view':
-      ElMessage.info('Navigate to order details');
+    case "view":
+      ElMessage.info("Navigate to order details");
       break;
-    case 'clear':
+    case "clear":
       try {
         await ElMessageBox.confirm(
-          'Clear all schedule items for this order?',
-          'Warning',
-          { type: 'warning' }
+          "Clear all schedule items for this order?",
+          "Warning",
+          { type: "warning" }
         );
         await deleteScheduleByOrder(orderId);
-        ElMessage.success('Schedule cleared');
+        ElMessage.success("Schedule cleared");
         loadSchedule();
       } catch (error) {
-        if (error !== 'cancel') {
-          ElMessage.error('Failed to clear schedule');
+        if (error !== "cancel") {
+          ElMessage.error("Failed to clear schedule");
         }
       }
       break;
-    case 'lock':
+    case "lock":
       await lockOrderTasks(orderId, true);
       break;
-    case 'unlock':
+    case "unlock":
       await lockOrderTasks(orderId, false);
       break;
   }
@@ -993,31 +1135,31 @@ const handleOrderAction = async (command, orderId) => {
 const lockOrderTasks = async (orderId, locked) => {
   try {
     const tasksToUpdate = scheduleItems.value
-      .filter(item => item.order === orderId)
-      .map(item => ({
+      .filter((item) => item.order === orderId)
+      .map((item) => ({
         id: item.id,
-        locked: locked
+        locked: locked,
       }));
-    
+
     await bulkUpdateSchedule(tasksToUpdate);
-    ElMessage.success(`Tasks ${locked ? 'locked' : 'unlocked'}`);
+    ElMessage.success(`Tasks ${locked ? "locked" : "unlocked"}`);
     loadSchedule();
   } catch (error) {
-    ElMessage.error(`Failed to ${locked ? 'lock' : 'unlock'} tasks`);
+    ElMessage.error(`Failed to ${locked ? "lock" : "unlock"} tasks`);
   }
 };
 
 const applyBulkEdit = async () => {
   if (selectedTasks.value.length === 0) {
-    ElMessage.warning('No tasks selected');
+    ElMessage.warning("No tasks selected");
     return;
   }
-  
+
   applyingBulk.value = true;
   try {
-    const updates = selectedTasks.value.map(task => {
+    const updates = selectedTasks.value.map((task) => {
       const update = { id: task.id };
-      
+
       // Shift dates if specified
       if (bulkEditForm.value.shiftHours !== 0) {
         const shiftMs = bulkEditForm.value.shiftHours * 3600 * 1000;
@@ -1026,28 +1168,28 @@ const applyBulkEdit = async () => {
         update.planned_start = newStart.toISOString();
         update.planned_end = newEnd.toISOString();
       }
-      
+
       // Update lock status
       update.locked = bulkEditForm.value.locked;
-      
+
       // Add note
       if (bulkEditForm.value.note) {
-        update.description = task.description 
+        update.description = task.description
           ? `${task.description}\n${bulkEditForm.value.note}`
           : bulkEditForm.value.note;
       }
-      
+
       return update;
     });
-    
+
     await bulkUpdateSchedule(updates);
     ElMessage.success(`${selectedTasks.value.length} tasks updated`);
     showBulkEditDialog.value = false;
-    bulkEditForm.value = { shiftHours: 0, locked: false, note: '' };
+    bulkEditForm.value = { shiftHours: 0, locked: false, note: "" };
     selectedTasks.value = [];
     loadSchedule();
   } catch (error) {
-    ElMessage.error('Failed to update tasks');
+    ElMessage.error("Failed to update tasks");
     console.error(error);
   } finally {
     applyingBulk.value = false;
@@ -1056,42 +1198,42 @@ const applyBulkEdit = async () => {
 
 const checkConflicts = async () => {
   if (selectedOrders.value.length === 0) {
-    ElMessage.warning('Please select orders to check for conflicts');
+    ElMessage.warning("Please select orders to check for conflicts");
     return;
   }
-  
+
   checkingConflicts.value = true;
   try {
     // Gather all scheduled tasks for selected orders
     const tasksToCheck = scheduledTasks.value
-      .filter(task => selectedOrders.value.includes(task.order))
-      .map(task => ({
+      .filter((task) => selectedOrders.value.includes(task.order))
+      .map((task) => ({
         id: task.id,
         order: task.order,
         operation: task.operation_name,
         start: task.start_datetime,
         end: task.end_datetime,
         workstation: task.workstation,
-        production_line: task.production_line
+        production_line: task.production_line,
       }));
-    
+
     if (tasksToCheck.length === 0) {
-      ElMessage.warning('No scheduled tasks found for selected orders');
+      ElMessage.warning("No scheduled tasks found for selected orders");
       return;
     }
-    
+
     const response = await checkConflictsAPI(tasksToCheck);
     conflicts.value = response.conflicts || [];
     calculateStats();
     showConflictsDialog.value = true;
-    
+
     if (conflicts.value.length === 0) {
-      ElMessage.success('No conflicts detected');
+      ElMessage.success("No conflicts detected");
     } else {
       ElMessage.warning(`Found ${conflicts.value.length} conflicts`);
     }
   } catch (error) {
-    ElMessage.error('Failed to check conflicts');
+    ElMessage.error("Failed to check conflicts");
     console.error(error);
   } finally {
     checkingConflicts.value = false;
@@ -1101,39 +1243,39 @@ const checkConflicts = async () => {
 const autoResolveConflicts = async () => {
   try {
     await ElMessageBox.confirm(
-      'Automatically adjust task times to resolve conflicts?',
-      'Auto Resolve',
-      { type: 'info' }
+      "Automatically adjust task times to resolve conflicts?",
+      "Auto Resolve",
+      { type: "info" }
     );
-    
+
     // Simple conflict resolution: shift conflicting tasks
     for (const conflict of conflicts.value) {
       // Implement basic resolution logic
       // This would need backend support for more sophisticated resolution
-      ElMessage.info('Auto-resolve functionality requires backend support');
+      ElMessage.info("Auto-resolve functionality requires backend support");
     }
-    
+
     showConflictsDialog.value = false;
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('Failed to resolve conflicts');
+    if (error !== "cancel") {
+      ElMessage.error("Failed to resolve conflicts");
     }
   }
 };
 
 const optimizeSchedule = async () => {
   if (selectedOrders.value.length === 0) {
-    ElMessage.warning('Please select orders to optimize');
+    ElMessage.warning("Please select orders to optimize");
     return;
   }
-  
+
   optimizing.value = true;
   try {
-    await optimizeScheduleAPI(selectedOrders.value, 'earliest');
-    ElMessage.success('Schedule optimized');
+    await optimizeScheduleAPI(selectedOrders.value, "earliest");
+    ElMessage.success("Schedule optimized");
     loadSchedule();
   } catch (error) {
-    ElMessage.error('Failed to optimize schedule');
+    ElMessage.error("Failed to optimize schedule");
     console.error(error);
   } finally {
     optimizing.value = false;
@@ -1142,53 +1284,62 @@ const optimizeSchedule = async () => {
 
 const handleExport = (format) => {
   if (ganttTasks.value.length === 0) {
-    ElMessage.warning('No data to export');
+    ElMessage.warning("No data to export");
     return;
   }
-  
+
   switch (format) {
-    case 'csv':
+    case "csv":
       exportToCSV();
       break;
-    case 'excel':
-      ElMessage.info('Excel export coming soon');
+    case "excel":
+      ElMessage.info("Excel export coming soon");
       break;
-    case 'pdf':
-      ElMessage.info('PDF export coming soon');
+    case "pdf":
+      ElMessage.info("PDF export coming soon");
       break;
   }
 };
 
 const exportToCSV = () => {
-  const headers = ['Order', 'Operation', 'Sequence', 'Start', 'End', 'Duration (s)', 'Locked', 'Description'];
-  const rows = ganttTasks.value.map(task => [
+  const headers = [
+    "Order",
+    "Operation",
+    "Sequence",
+    "Start",
+    "End",
+    "Duration (s)",
+    "Locked",
+    "Description",
+  ];
+  const rows = ganttTasks.value.map((task) => [
     task.orderNumber,
     task.name,
     task.sequenceIndex,
     task.start,
     task.end,
     task.duration,
-    task.locked ? 'Yes' : 'No',
-    task.description || ''
+    task.locked ? "Yes" : "No",
+    task.description || "",
   ]);
 
   const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-  ].join('\n');
+    headers.join(","),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+  ].join("\n");
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `schedule_${new Date().toISOString().split('T')[0]}.csv`;
+  link.download = `schedule_${new Date().toISOString().split("T")[0]}.csv`;
   link.click();
-  
-  ElMessage.success('CSV exported successfully');
+
+  ElMessage.success("CSV exported successfully");
 };
 
 const getTasksForDate = (dateStr) => {
   const date = new Date(dateStr);
-  return ganttTasks.value.filter(task => {
+  return ganttTasks.value.filter((task) => {
     const start = new Date(task.start);
     const end = new Date(task.end);
     return date >= start && date <= end;
@@ -1197,54 +1348,58 @@ const getTasksForDate = (dateStr) => {
 
 const getStatusType = (state) => {
   const statusMap = {
-    'pending': '',
-    'in_progress': 'warning',
-    'completed': 'success',
-    'cancelled': 'danger'
+    pending: "",
+    in_progress: "warning",
+    completed: "success",
+    cancelled: "danger",
   };
-  return statusMap[state] || 'info';
+  return statusMap[state] || "info";
 };
 
 const formatDateTime = (dateStr) => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 const formatConflictType = (type) => {
   const typeMap = {
-    'workstation_conflict': 'Workstation Conflict',
-    'production_line_conflict': 'Production Line Conflict',
-    'time_overlap': 'Time Overlap'
+    workstation_conflict: "Workstation Conflict",
+    production_line_conflict: "Production Line Conflict",
+    time_overlap: "Time Overlap",
   };
   return typeMap[type] || type;
 };
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 };
 
 const formatDuration = (seconds) => {
-  if (!seconds) return '0m';
+  if (!seconds) return "0m";
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 };
 
 // Watch for order selection changes
-watch(selectedOrders, () => {
-  loadSchedule();
-}, { deep: true });
+watch(
+  selectedOrders,
+  () => {
+    loadSchedule();
+  },
+  { deep: true }
+);
 
 // Lifecycle
 onMounted(() => {
@@ -1598,7 +1753,7 @@ onMounted(() => {
   .stats-container {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .orders-sidebar {
     width: 300px;
   }
@@ -1608,16 +1763,16 @@ onMounted(() => {
   .stats-container {
     grid-template-columns: 1fr;
   }
-  
+
   .scheduling-content {
     flex-direction: column;
   }
-  
+
   .orders-sidebar {
     width: 100%;
     max-height: 300px;
   }
-  
+
   .gantt-controls {
     flex-direction: column;
     gap: 10px;

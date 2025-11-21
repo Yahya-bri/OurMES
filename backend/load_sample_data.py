@@ -3,23 +3,27 @@
 Sample data loader for OurMES
 Creates companies, products, technologies, and orders for testing
 """
+from mes.plugins.quality.domain.models import InspectionConfig, QualityCheck, NCR, SPCData
+from mes.plugins.maintenance.domain.models import MaintenanceLog
+from mes.plugins.inventory.domain.models import MaterialStock, Container, TraceabilityRecord, KanbanCard
+from mes.plugins.production_counting.domain.models import ProductionCounting
+from mes.plugins.orders.domain.models import Order
+from mes.plugins.routing.domain.models import Technology, Operation, TechnologyOperationComponent, OperationProductInComponent, OperationProductOutComponent
+from django.contrib.auth.models import User, Group
+from mes.plugins.basic.domain.models import Company, Product, Workstation, ProductionLine, Staff
+from django.utils import timezone
 import os
 import sys
 import django
 from datetime import timedelta
 from decimal import Decimal
-from django.utils import timezone
 
 # Setup Django
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ourmes_backend.settings.dev')
 django.setup()
 
-from mes.plugins.basic.domain.models import Company, Product, Workstation, ProductionLine, Staff
-from django.contrib.auth.models import User, Group
-from mes.plugins.routing.domain.models import Technology, Operation, TechnologyOperationComponent, OperationProductInComponent, OperationProductOutComponent
-from mes.plugins.orders.domain.models import Order
-from mes.plugins.production_counting.domain.models import ProductionCounting
+# Now import Django models after setup
 
 
 def create_companies():
@@ -51,7 +55,7 @@ def create_companies():
             'country': 'UK'
         },
     ]
-    
+
     created = []
     for comp_data in companies:
         comp, _ = Company.objects.get_or_create(
@@ -60,7 +64,7 @@ def create_companies():
         )
         created.append(comp)
         print(f"  ✓ {comp.number} - {comp.name}")
-    
+
     return created
 
 
@@ -70,14 +74,20 @@ def create_workstations(production_lines):
     line_lookup = {line.number: line for line in production_lines}
     fallback_line = production_lines[0] if production_lines else None
     workstations_data = [
-        {'number': 'WS001', 'name': 'CNC Machine 1', 'description': 'High-precision CNC milling machine', 'line': 'LINE001'},
-        {'number': 'WS002', 'name': 'CNC Machine 2', 'description': 'Secondary CNC machine', 'line': 'LINE001'},
-        {'number': 'WS003', 'name': 'Assembly Line A', 'description': 'Primary assembly line', 'line': 'LINE001'},
-        {'number': 'WS004', 'name': 'Assembly Line B', 'description': 'Secondary assembly line', 'line': 'LINE002'},
-        {'number': 'WS005', 'name': 'Quality Control Station', 'description': 'Final quality inspection', 'line': 'LINE001'},
-        {'number': 'WS006', 'name': 'Packaging Unit', 'description': 'Product packaging station', 'line': 'LINE002'},
+        {'number': 'WS001', 'name': 'CNC Machine 1',
+            'description': 'High-precision CNC milling machine', 'line': 'LINE001'},
+        {'number': 'WS002', 'name': 'CNC Machine 2',
+            'description': 'Secondary CNC machine', 'line': 'LINE001'},
+        {'number': 'WS003', 'name': 'Assembly Line A',
+            'description': 'Primary assembly line', 'line': 'LINE001'},
+        {'number': 'WS004', 'name': 'Assembly Line B',
+            'description': 'Secondary assembly line', 'line': 'LINE002'},
+        {'number': 'WS005', 'name': 'Quality Control Station',
+            'description': 'Final quality inspection', 'line': 'LINE001'},
+        {'number': 'WS006', 'name': 'Packaging Unit',
+            'description': 'Product packaging station', 'line': 'LINE002'},
     ]
-    
+
     created = []
     for ws_data in workstations_data:
         target_line = line_lookup.get(ws_data.get('line')) or fallback_line
@@ -96,7 +106,7 @@ def create_workstations(production_lines):
         created.append(ws)
         line_label = ws.production_line.number if ws.production_line else 'UNASSIGNED'
         print(f"  ✓ {ws.number} - {ws.name} (Line {line_label})")
-    
+
     return created
 
 
@@ -104,10 +114,12 @@ def create_production_lines():
     """Create sample production lines"""
     print("\nCreating production lines...")
     lines_data = [
-        {'number': 'LINE001', 'name': 'Main Production Line', 'description': 'Primary manufacturing line'},
-        {'number': 'LINE002', 'name': 'Secondary Line', 'description': 'Backup production capacity'},
+        {'number': 'LINE001', 'name': 'Main Production Line',
+            'description': 'Primary manufacturing line'},
+        {'number': 'LINE002', 'name': 'Secondary Line',
+            'description': 'Backup production capacity'},
     ]
-    
+
     created = []
     for line_data in lines_data:
         line, _ = ProductionLine.objects.get_or_create(
@@ -116,7 +128,7 @@ def create_production_lines():
         )
         created.append(line)
         print(f"  ✓ {line.number} - {line.name}")
-    
+
     return created
 
 
@@ -164,7 +176,7 @@ def create_products(companies):
             'producer': companies[0] if companies else None
         },
     ]
-    
+
     created = []
     for prod_data in products_data:
         prod, _ = Product.objects.get_or_create(
@@ -173,7 +185,7 @@ def create_products(companies):
         )
         created.append(prod)
         print(f"  ✓ {prod.number} - {prod.name}")
-    
+
     return created
 
 
@@ -228,7 +240,7 @@ def create_operations(workstations):
             'workstation': 'WS002'
         },
     ]
-    
+
     created = []
     op_workstation_map = {}
     ws_lookup = {ws.number: ws for ws in workstations}
@@ -245,13 +257,14 @@ def create_operations(workstations):
         op.save()
         # Add workstation relationship
         ws_number = op_data.get('workstation')
-        assigned_ws = ws_lookup.get(ws_number) if ws_number else (ws_cycle[idx % len(ws_cycle)] if ws_cycle else None)
+        assigned_ws = ws_lookup.get(ws_number) if ws_number else (
+            ws_cycle[idx % len(ws_cycle)] if ws_cycle else None)
         if assigned_ws:
             op.workstations.set([assigned_ws])
             op_workstation_map[op.number] = assigned_ws
         created.append(op)
         print(f"  ✓ {op.number} - {op.name}")
-    
+
     return created, op_workstation_map
 
 
@@ -259,9 +272,9 @@ def create_technologies(products, operations):
     """Create sample technologies"""
     print("\nCreating technologies...")
     ops_map = {op.number: op for op in operations}
-    
+
     # Technology for Final Product X100
-    if len(products) >= 4 and {'OP001','OP002','OP003','OP004'}.issubset(ops_map.keys()):
+    if len(products) >= 4 and {'OP001', 'OP002', 'OP003', 'OP004'}.issubset(ops_map.keys()):
         tech1, _ = Technology.objects.get_or_create(
             number='ROUTE001',
             defaults={
@@ -273,54 +286,54 @@ def create_technologies(products, operations):
             }
         )
         print(f"  ✓ {tech1.number} - {tech1.name}")
-        
+
         # Add operations to technology
         toc1, _ = TechnologyOperationComponent.objects.get_or_create(
             technology=tech1,
             operation=ops_map['OP001'],  # CNC Milling
             defaults={'node_number': '1', 'priority': 10}
         )
-        
+
         toc2, _ = TechnologyOperationComponent.objects.get_or_create(
             technology=tech1,
             operation=ops_map['OP002'],  # Assembly
             defaults={'node_number': '1.1', 'priority': 20, 'parent': toc1}
         )
-        
+
         toc3, _ = TechnologyOperationComponent.objects.get_or_create(
             technology=tech1,
             operation=ops_map['OP003'],  # Quality Check
             defaults={'node_number': '1.1.1', 'priority': 30, 'parent': toc2}
         )
-        
+
         toc4, _ = TechnologyOperationComponent.objects.get_or_create(
             technology=tech1,
             operation=ops_map['OP004'],  # Packaging
             defaults={'node_number': '1.1.1.1', 'priority': 40, 'parent': toc3}
         )
-        
+
         # Add input components (materials)
         OperationProductInComponent.objects.get_or_create(
             operation_component=toc1,
             product=products[0],  # Widget Alpha
             defaults={'quantity': Decimal('2.00')}
         )
-        
+
         OperationProductInComponent.objects.get_or_create(
             operation_component=toc2,
             product=products[1],  # Widget Beta
             defaults={'quantity': Decimal('3.00')}
         )
-        
+
         # Add output product
         OperationProductOutComponent.objects.get_or_create(
             operation_component=toc4,
             product=products[3],  # Final Product X100
             defaults={'quantity': Decimal('1.00')}
         )
-        
+
         print(f"    ✓ Added 4 operations with components")
-        
+
         # Technology for Final Product X200
         tech2, _ = Technology.objects.get_or_create(
             number='ROUTE002',
@@ -343,7 +356,8 @@ def create_technologies(products, operations):
             premium_polish, _ = TechnologyOperationComponent.objects.get_or_create(
                 technology=tech2,
                 operation=ops_map['OP005'],
-                defaults={'node_number': '1.2', 'priority': 25, 'parent': premium_root}
+                defaults={'node_number': '1.2',
+                          'priority': 25, 'parent': premium_root}
             )
             OperationProductOutComponent.objects.get_or_create(
                 operation_component=premium_polish,
@@ -351,7 +365,7 @@ def create_technologies(products, operations):
                 defaults={'quantity': Decimal('1.00')}
             )
         return [tech1, tech2]
-    
+
     return []
 
 
@@ -436,9 +450,12 @@ def create_staff():
     """Create sample staff/operators for production counting"""
     print("\nCreating staff...")
     staff_data = [
-        {'number': 'EMP001', 'name': 'Alice', 'surname': 'Smith', 'email': 'alice@example.com', 'phone': '+1-555-1111'},
-        {'number': 'EMP002', 'name': 'Bob', 'surname': 'Johnson', 'email': 'bob@example.com', 'phone': '+1-555-2222'},
-        {'number': 'EMP003', 'name': 'Carol', 'surname': 'Davis', 'email': 'carol@example.com', 'phone': '+1-555-3333'},
+        {'number': 'EMP001', 'name': 'Alice', 'surname': 'Smith',
+            'email': 'alice@example.com', 'phone': '+1-555-1111'},
+        {'number': 'EMP002', 'name': 'Bob', 'surname': 'Johnson',
+            'email': 'bob@example.com', 'phone': '+1-555-2222'},
+        {'number': 'EMP003', 'name': 'Carol', 'surname': 'Davis',
+            'email': 'carol@example.com', 'phone': '+1-555-3333'},
     ]
     created = []
     for s in staff_data:
@@ -537,8 +554,168 @@ def create_production_counts(orders, operations, staff, op_workstation_map):
             }
         )
         records.append(record)
-        print(f"  ✓ Production record for {record.order.number} - {operation.number} ({record.status})")
+        print(
+            f"  ✓ Production record for {record.order.number} - {operation.number} ({record.status})")
     return records
+
+
+def create_inventory_data(products):
+    """Create sample inventory data"""
+    print("\nCreating inventory data...")
+    if not products:
+        print("  ⚠ Skipping inventory - no products")
+        return []
+
+    # Material Stock
+    stocks = [
+        MaterialStock.objects.get_or_create(
+            material=products[0],
+            location_name='Warehouse A1',
+            defaults={'location_type': 'warehouse', 'quantity': Decimal(
+                '500'), 'batch_number': 'B-2023-001'}
+        )[0],
+        MaterialStock.objects.get_or_create(
+            material=products[1],
+            location_name='Shop Floor - CNC',
+            defaults={'location_type': 'shop_floor', 'quantity': Decimal('50')}
+        )[0],
+    ]
+    print(f"  ✓ Created {len(stocks)} stock records")
+
+    # Containers
+    containers = [
+        Container.objects.get_or_create(
+            container_id='BIN-101',
+            defaults={'type': 'bin', 'content_material': products[0], 'content_quantity': Decimal(
+                '100'), 'location': 'Warehouse A1'}
+        )[0],
+        Container.objects.get_or_create(
+            container_id='PAL-205',
+            defaults={'type': 'pallet', 'content_material': products[3], 'content_quantity': Decimal(
+                '20'), 'location': 'Shipping Dock'}
+        )[0],
+    ]
+    print(f"  ✓ Created {len(containers)} containers")
+
+    # Traceability
+    traces = [
+        TraceabilityRecord.objects.get_or_create(
+            finished_good_batch='FG-2023-100',
+            raw_material_batch='RM-2023-050',
+            defaults={
+                'finished_good': products[3], 'raw_material': products[0], 'quantity_used': Decimal('200')}
+        )[0],
+    ]
+    print(f"  ✓ Created {len(traces)} traceability records")
+
+    # Kanban Cards
+    kanbans = [
+        KanbanCard.objects.get_or_create(
+            material=products[0],
+            location='Assembly Line 1',
+            defaults={'capacity': Decimal('500'), 'status': 'full'}
+        )[0],
+        KanbanCard.objects.get_or_create(
+            material=products[1],
+            location='CNC Center',
+            defaults={'capacity': Decimal('200'), 'status': 'replenishing'}
+        )[0],
+    ]
+    print(f"  ✓ Created {len(kanbans)} kanban cards")
+
+    return stocks + containers + traces + kanbans
+
+
+def create_maintenance_data(workstations):
+    """Create sample maintenance logs"""
+    print("\nCreating maintenance data...")
+    if not workstations:
+        print("  ⚠ Skipping maintenance - no workstations")
+        return []
+
+    now = timezone.now()
+    logs = [
+        MaintenanceLog.objects.get_or_create(
+            workstation=workstations[0],
+            start_time=now - timedelta(days=5),
+            defaults={
+                'type': 'preventive',
+                'description': 'Routine maintenance check',
+                'end_time': now - timedelta(days=5, hours=-2),
+                'technician_name': 'John Doe'
+            }
+        )[0],
+        MaintenanceLog.objects.get_or_create(
+            workstation=workstations[0],
+            start_time=now - timedelta(days=15),
+            defaults={
+                'type': 'corrective',
+                'description': 'Bearing replacement',
+                'end_time': now - timedelta(days=15, hours=-4),
+                'technician_name': 'Jane Smith'
+            }
+        )[0],
+    ]
+    print(f"  ✓ Created {len(logs)} maintenance logs")
+    return logs
+
+
+def create_quality_data(operations, products):
+    """Create sample quality data"""
+    print("\nCreating quality data...")
+    if not operations or not products:
+        print("  ⚠ Skipping quality - no operations or products")
+        return []
+
+    # Inspection Configs
+    configs = [
+        InspectionConfig.objects.get_or_create(
+            operation=operations[0],
+            defaults={
+                'check_type': 'variable',
+                'description': 'Diameter measurement',
+                'parameters': '10.0 +/- 0.05mm',
+                'mandatory': True
+            }
+        )[0],
+        InspectionConfig.objects.get_or_create(
+            operation=operations[1],
+            defaults={
+                'check_type': 'pass_fail',
+                'description': 'Visual inspection',
+                'parameters': '',
+                'mandatory': True
+            }
+        )[0],
+    ]
+    print(f"  ✓ Created {len(configs)} inspection configs")
+
+    # NCRs
+    ncrs = [
+        NCR.objects.get_or_create(
+            ncr_number='NCR-2023-055',
+            defaults={
+                'product': products[3],
+                'issue_description': 'Surface scratch > 2mm',
+                'status': 'quarantine',
+                'disposition': ''
+            }
+        )[0],
+    ]
+    print(f"  ✓ Created {len(ncrs)} NCRs")
+
+    # SPC Data
+    spc_data = []
+    for i in range(10):
+        spc = SPCData.objects.create(
+            parameter_name='Diameter',
+            value=Decimal('10.0') + Decimal(str((i - 5) * 0.01)),
+            machine_id='CNC-A'
+        )
+        spc_data.append(spc)
+    print(f"  ✓ Created {len(spc_data)} SPC data points")
+
+    return configs + ncrs + spc_data
 
 
 def main():
@@ -546,7 +723,7 @@ def main():
     print("=" * 60)
     print("OurMES Sample Data Loader")
     print("=" * 60)
-    
+
     # Create data in order of dependencies
     companies = create_companies()
     production_lines = create_production_lines()
@@ -557,8 +734,14 @@ def main():
     technologies = create_technologies(products, operations)
     orders = create_orders(products, technologies, companies, production_lines)
     create_users_and_roles()
-    production_counts = create_production_counts(orders, operations, staff, op_workstation_map)
-    
+    production_counts = create_production_counts(
+        orders, operations, staff, op_workstation_map)
+
+    # Create new feature data
+    inventory_items = create_inventory_data(products)
+    maintenance_logs = create_maintenance_data(workstations)
+    quality_items = create_quality_data(operations, products)
+
     print("\n" + "=" * 60)
     print("✓ Sample data loaded successfully!")
     print("=" * 60)
@@ -571,6 +754,9 @@ def main():
     print(f"Staff: {len(staff)}")
     print(f"Orders: {len(orders)}")
     print(f"Production Counts: {len(production_counts)}")
+    print(f"Inventory Items: {len(inventory_items)}")
+    print(f"Maintenance Logs: {len(maintenance_logs)}")
+    print(f"Quality Items: {len(quality_items)}")
     print("Users: operator/planner/supervisor/admin (passwords same as usernames)")
     print("=" * 60)
 

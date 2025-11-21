@@ -1,38 +1,86 @@
 <template>
   <div class="dashboard">
-    <h1>Dashboard</h1>
-    <el-row :gutter="20">
-      <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-number">{{ stats.total }}</div>
-          <div class="stat-label">Total Orders</div>
+    <h1>Plant Manager Dashboard</h1>
+
+    <!-- Production Performance Analysis (KPIs) -->
+    <el-row :gutter="20" class="mb-4">
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>Overall Equipment Effectiveness (OEE)</span>
+              <el-tag type="success">Target: 85%</el-tag>
+            </div>
+          </template>
+          <div class="kpi-display">
+            <el-progress
+              type="dashboard"
+              :percentage="oeeValue"
+              :color="customColors"
+            />
+            <div class="kpi-details">
+              <p>Availability: {{ oeeBreakdown.availability }}%</p>
+              <p>Performance: {{ oeeBreakdown.performance }}%</p>
+              <p>Quality: {{ oeeBreakdown.quality }}%</p>
+            </div>
+          </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card pending">
-          <div class="stat-number">{{ stats.pending }}</div>
-          <div class="stat-label">Pending</div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card in-progress">
-          <div class="stat-number">{{ stats.in_progress }}</div>
-          <div class="stat-label">In Progress</div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card completed">
-          <div class="stat-number">{{ stats.completed }}</div>
-          <div class="stat-label">Completed</div>
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>Total Effective Equipment Performance (TEEP)</span>
+              <el-tag type="warning">Target: 75%</el-tag>
+            </div>
+          </template>
+          <div class="kpi-display">
+            <el-progress
+              type="dashboard"
+              :percentage="teepValue"
+              :color="customColors"
+            />
+            <div class="kpi-details">
+              <p>Utilization: {{ teepBreakdown.utilization }}%</p>
+              <p>OEE: {{ oeeValue }}%</p>
+            </div>
+          </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <el-col :span="16">
+    <!-- Resource Capability Analysis -->
+    <el-row :gutter="20" class="mb-4">
+      <el-col :span="24">
         <el-card>
           <template #header>
-            <span>Recent Orders</span>
+            <span>Resource Capability Analysis (Committed vs Available)</span>
+          </template>
+          <el-table :data="resourceCapability" style="width: 100%">
+            <el-table-column prop="resource" label="Resource Type" />
+            <el-table-column prop="total" label="Total Capacity" />
+            <el-table-column prop="committed" label="Committed" />
+            <el-table-column prop="available" label="Available" />
+            <el-table-column label="Utilization">
+              <template #default="scope">
+                <el-progress
+                  :percentage="
+                    Math.round((scope.row.committed / scope.row.total) * 100)
+                  "
+                />
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- Recent Production Orders -->
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-card>
+          <template #header>
+            <span>Recent Production Orders</span>
           </template>
           <el-table :data="recentOrders" style="width: 100%">
             <el-table-column prop="number" label="Order Number" width="150" />
@@ -40,22 +88,12 @@
             <el-table-column prop="product_name" label="Product" />
             <el-table-column prop="state" label="State">
               <template #default="scope">
-                <el-tag :type="getStateType(scope.row.state)">{{ scope.row.state }}</el-tag>
+                <el-tag :type="getStateType(scope.row.state)">{{
+                  scope.row.state
+                }}</el-tag>
               </template>
             </el-table-column>
           </el-table>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card>
-          <template #header>
-            <span>Quick Actions</span>
-          </template>
-          <div class="quick-actions">
-            <el-button type="primary" @click="$router.push('/orders/new')">New Order</el-button>
-            <el-button @click="$router.push('/products')">View Products</el-button>
-            <el-button @click="$router.push('/routing')">Manage Routing</el-button>
-          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -63,37 +101,53 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getOrderStats, getOrders } from '@/modules/orders/services/ordersService';
+import { ref, onMounted } from "vue";
+import { getOrders } from "@/modules/orders/services/ordersService";
 
-const stats = ref({
-  total: 0,
-  pending: 0,
-  in_progress: 0,
-  completed: 0,
+const oeeValue = ref(78);
+const teepValue = ref(65);
+
+const oeeBreakdown = ref({
+  availability: 85,
+  performance: 92,
+  quality: 99,
 });
+
+const teepBreakdown = ref({
+  utilization: 83,
+});
+
+const customColors = [
+  { color: "#f56c6c", percentage: 60 },
+  { color: "#e6a23c", percentage: 80 },
+  { color: "#5cb87a", percentage: 100 },
+];
+
+const resourceCapability = ref([
+  { resource: "CNC Machines", total: 160, committed: 120, available: 40 },
+  { resource: "Assembly Line", total: 320, committed: 280, available: 40 },
+  { resource: "Packaging", total: 80, committed: 40, available: 40 },
+  { resource: "Personnel", total: 50, committed: 45, available: 5 },
+]);
 
 const recentOrders = ref([]);
 
 const getStateType = (state) => {
   const types = {
-    pending: 'warning',
-    in_progress: 'info',
-    completed: 'success',
-    declined: 'danger',
+    pending: "warning",
+    in_progress: "info",
+    completed: "success",
+    declined: "danger",
   };
-  return types[state] || '';
+  return types[state] || "";
 };
 
 const loadData = async () => {
   try {
-    const statsData = await getOrderStats();
-    stats.value = statsData;
-    
     const ordersData = await getOrders({ limit: 5 });
     recentOrders.value = ordersData.results || ordersData;
   } catch (error) {
-    console.error('Error loading dashboard data:', error);
+    console.error("Error loading dashboard data:", error);
   }
 };
 
@@ -107,38 +161,29 @@ onMounted(() => {
   padding: 20px;
 }
 
-.stat-card {
-  text-align: center;
-  padding: 20px;
+.mb-4 {
+  margin-bottom: 20px;
 }
 
-.stat-number {
-  font-size: 36px;
-  font-weight: bold;
-  color: #409EFF;
-}
-
-.stat-card.pending .stat-number {
-  color: #E6A23C;
-}
-
-.stat-card.in-progress .stat-number {
-  color: #409EFF;
-}
-
-.stat-card.completed .stat-number {
-  color: #67C23A;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #909399;
-  margin-top: 10px;
-}
-
-.quick-actions {
+.card-header {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kpi-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.kpi-details {
+  text-align: left;
+}
+
+.kpi-details p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #606266;
 }
 </style>

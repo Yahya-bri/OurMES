@@ -1,7 +1,7 @@
 <template>
   <div class="production">
     <h1>Production Tracking & Counting</h1>
-    
+
     <el-row :gutter="20">
       <el-col :span="6">
         <el-card class="stat-card">
@@ -29,7 +29,7 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" style="margin-top: 20px;">
+    <el-row :gutter="20" style="margin-top: 20px">
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-number">{{ scheduledTodayCount }}</div>
@@ -63,48 +63,75 @@
       class="info-banner"
     />
 
-    <el-card style="margin-top: 20px;">
+    <el-card style="margin-top: 20px">
       <template #header>
-        <span>Orders in Production</span>
+        <span>Real-Time Job Status (WIP Tracking)</span>
       </template>
-      <el-table :data="ordersInProduction" style="width: 100%;" v-loading="loading" @row-click="viewOrderDetails">
-        <el-table-column prop="number" label="Order Number" width="130" />
-        <el-table-column prop="name" label="Order Name" width="200" />
+      <el-table
+        :data="ordersInProduction"
+        style="width: 100%"
+        v-loading="loading"
+        @row-click="viewOrderDetails"
+      >
+        <el-table-column prop="number" label="Job Order" width="130" />
         <el-table-column prop="product_name" label="Product" width="150" />
-        <el-table-column prop="planned_quantity" label="Planned" width="100" />
-        <el-table-column prop="done_quantity" label="Produced" width="100">
+        <el-table-column prop="state" label="Status" width="120">
           <template #default="scope">
-            <span :style="{ color: scope.row.done_quantity >= scope.row.planned_quantity ? '#67c23a' : '#606266' }">
-              {{ scope.row.done_quantity || 0 }}
-            </span>
+            <el-tag :type="getJobStatusType(scope.row.state)">{{
+              scope.row.state
+            }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="Progress" width="180">
+        <el-table-column label="Current Operation" width="180">
           <template #default="scope">
-            <el-progress 
-              :percentage="calculateProgress(scope.row)" 
-              :status="getProgressStatus(scope.row)"
+            {{ getCurrentOperation(scope.row) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Buffer Status" width="150">
+          <template #default="scope">
+            <el-progress
+              :percentage="getBufferUsage(scope.row)"
+              :color="bufferColors"
             />
           </template>
         </el-table-column>
+        <el-table-column prop="planned_quantity" label="Planned" width="100" />
+        <el-table-column prop="done_quantity" label="Completed" width="100" />
         <el-table-column label="Actions" width="150">
           <template #default="scope">
-            <el-button size="small" type="primary" @click.stop="viewOrderDetails(scope.row)">Details</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              @click.stop="viewOrderDetails(scope.row)"
+              >Details</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <el-card style="margin-top: 20px;">
+    <el-card style="margin-top: 20px">
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
           <span>Scheduled Operations</span>
-          <el-button text size="small" :loading="scheduleLoading" @click="refreshScheduleData">Sync Schedule</el-button>
+          <el-button
+            text
+            size="small"
+            :loading="scheduleLoading"
+            @click="refreshScheduleData"
+            >Sync Schedule</el-button
+          >
         </div>
       </template>
       <el-table
         :data="scheduledOperationRows"
-        style="width: 100%;"
+        style="width: 100%"
         v-loading="scheduleLoading"
         empty-text="No schedule items for active orders"
         class="schedule-table"
@@ -121,14 +148,18 @@
           <template #default="scope">
             <div class="operation-cell">
               <span>{{ scope.row.operationName }}</span>
-              <span class="secondary-text" v-if="scope.row.operationNumber">Op {{ scope.row.operationNumber }}</span>
+              <span class="secondary-text" v-if="scope.row.operationNumber"
+                >Op {{ scope.row.operationNumber }}</span
+              >
             </div>
           </template>
         </el-table-column>
         <el-table-column label="Planned" width="220">
           <template #default="scope">
             <div>{{ formatDateTime(scope.row.plannedStart) }}</div>
-            <div class="secondary-text">{{ formatDateTime(scope.row.plannedEnd) }}</div>
+            <div class="secondary-text">
+              {{ formatDateTime(scope.row.plannedEnd) }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="Status" width="140">
@@ -141,9 +172,16 @@
         <el-table-column label="Actual / Qty" width="220">
           <template #default="scope">
             <div v-if="scope.row.record">
-              <div>{{ scope.row.record.start_time ? formatDateTime(scope.row.record.start_time) : '—' }}</div>
+              <div>
+                {{
+                  scope.row.record.start_time
+                    ? formatDateTime(scope.row.record.start_time)
+                    : "—"
+                }}
+              </div>
               <div class="secondary-text">
-                {{ scope.row.record.produced_quantity || 0 }} good / {{ scope.row.record.scrap_quantity || 0 }} scrap
+                {{ scope.row.record.produced_quantity || 0 }} good /
+                {{ scope.row.record.scrap_quantity || 0 }} scrap
               </div>
             </div>
             <span v-else>Not started</span>
@@ -158,9 +196,9 @@
         </el-table-column>
         <el-table-column label="Details" width="120">
           <template #default="scope">
-            <el-button 
-              size="small" 
-              text 
+            <el-button
+              size="small"
+              text
               @click.stop="viewOrderDetailsById(scope.row.order)"
             >
               View
@@ -171,24 +209,32 @@
     </el-card>
 
     <!-- Active Operations -->
-    <el-card style="margin-top: 20px;">
+    <el-card style="margin-top: 20px">
       <template #header>
         <span>Active Operations</span>
       </template>
-      <el-table :data="activeProductionRecords" style="width: 100%;">
+      <el-table :data="activeProductionRecords" style="width: 100%">
         <el-table-column prop="order_number" label="Order" width="120" />
         <el-table-column label="Operation" width="180">
           <template #default="scope">
             {{ scope.row.operation_name || `Op #${scope.row.operation}` }}
           </template>
         </el-table-column>
-        <el-table-column prop="workstation_name" label="Workstation" width="150" />
+        <el-table-column
+          prop="workstation_name"
+          label="Workstation"
+          width="150"
+        />
         <el-table-column prop="start_time" label="Started" width="180">
           <template #default="scope">
             {{ formatDateTime(scope.row.start_time) }}
           </template>
         </el-table-column>
-        <el-table-column prop="produced_quantity" label="Produced" width="100" />
+        <el-table-column
+          prop="produced_quantity"
+          label="Produced"
+          width="100"
+        />
         <el-table-column prop="scrap_quantity" label="Scrap" width="100" />
         <el-table-column label="Duration" width="120">
           <template #default="scope">
@@ -198,18 +244,25 @@
       </el-table>
     </el-card>
 
-    <el-row :gutter="20" style="margin-top: 20px;">
+    <el-row :gutter="20" style="margin-top: 20px">
       <el-col :span="12">
         <el-card>
           <template #header>
             <span>Workstation Status</span>
           </template>
-          <el-empty v-if="!workstationsList.length" description="No workstations available" />
+          <el-empty
+            v-if="!workstationsList.length"
+            description="No workstations available"
+          />
           <div v-else>
-            <div v-for="ws in workstationsList" :key="ws.id" class="workstation-item">
+            <div
+              v-for="ws in workstationsList"
+              :key="ws.id"
+              class="workstation-item"
+            >
               <span>{{ ws.name }}</span>
               <el-tag :type="ws.active ? 'success' : 'info'">
-                {{ ws.active ? 'Active' : 'Inactive' }}
+                {{ ws.active ? "Active" : "Inactive" }}
               </el-tag>
             </div>
           </div>
@@ -220,12 +273,19 @@
           <template #header>
             <span>Production Lines</span>
           </template>
-          <el-empty v-if="!productionLinesList.length" description="No production lines available" />
+          <el-empty
+            v-if="!productionLinesList.length"
+            description="No production lines available"
+          />
           <div v-else>
-            <div v-for="line in productionLinesList" :key="line.id" class="production-line-item">
+            <div
+              v-for="line in productionLinesList"
+              :key="line.id"
+              class="production-line-item"
+            >
               <span>{{ line.name }}</span>
               <el-tag :type="line.active ? 'success' : 'info'">
-                {{ line.active ? 'Active' : 'Inactive' }}
+                {{ line.active ? "Active" : "Inactive" }}
               </el-tag>
             </div>
           </div>
@@ -234,26 +294,51 @@
     </el-row>
 
     <!-- Order Details Dialog -->
-    <el-dialog v-model="showDetailsDialog" title="Order Production Details" width="800px">
+    <el-dialog
+      v-model="showDetailsDialog"
+      title="Order Production Details"
+      width="800px"
+    >
       <div v-if="selectedOrder">
         <h3>{{ selectedOrder.number }} - {{ selectedOrder.name }}</h3>
-        <el-descriptions :column="2" border style="margin-top: 20px;">
-          <el-descriptions-item label="Product">{{ selectedOrder.product_name }}</el-descriptions-item>
+        <el-descriptions :column="2" border style="margin-top: 20px">
+          <el-descriptions-item label="Product">{{
+            selectedOrder.product_name
+          }}</el-descriptions-item>
           <el-descriptions-item label="State">
-            <el-tag :type="getStateType(selectedOrder.state)">{{ selectedOrder.state }}</el-tag>
+            <el-tag :type="getStateType(selectedOrder.state)">{{
+              selectedOrder.state
+            }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="Planned Qty">{{ selectedOrder.planned_quantity }}</el-descriptions-item>
-          <el-descriptions-item label="Produced Qty">{{ orderProgress.produced || 0 }}</el-descriptions-item>
-          <el-descriptions-item label="Scrap Qty">{{ orderProgress.scrap || 0 }}</el-descriptions-item>
+          <el-descriptions-item label="Planned Qty">{{
+            selectedOrder.planned_quantity
+          }}</el-descriptions-item>
+          <el-descriptions-item label="Produced Qty">{{
+            orderProgress.produced || 0
+          }}</el-descriptions-item>
+          <el-descriptions-item label="Scrap Qty">{{
+            orderProgress.scrap || 0
+          }}</el-descriptions-item>
           <el-descriptions-item label="Yield">
             {{ calculateYield(orderProgress.produced, orderProgress.scrap) }}%
           </el-descriptions-item>
         </el-descriptions>
 
-        <h4 style="margin-top: 20px;">Production Records</h4>
-        <el-table :data="orderProductionRecords" style="width: 100%; margin-top: 10px;">
-          <el-table-column prop="operation_name" label="Operation" width="180" />
-          <el-table-column prop="workstation_name" label="Workstation" width="150" />
+        <h4 style="margin-top: 20px">Production Records</h4>
+        <el-table
+          :data="orderProductionRecords"
+          style="width: 100%; margin-top: 10px"
+        >
+          <el-table-column
+            prop="operation_name"
+            label="Operation"
+            width="180"
+          />
+          <el-table-column
+            prop="workstation_name"
+            label="Workstation"
+            width="150"
+          />
           <el-table-column prop="start_time" label="Started" width="150">
             <template #default="scope">
               {{ formatDateTime(scope.row.start_time) }}
@@ -261,14 +346,24 @@
           </el-table-column>
           <el-table-column prop="end_time" label="Ended" width="150">
             <template #default="scope">
-              {{ scope.row.end_time ? formatDateTime(scope.row.end_time) : 'In progress' }}
+              {{
+                scope.row.end_time
+                  ? formatDateTime(scope.row.end_time)
+                  : "In progress"
+              }}
             </template>
           </el-table-column>
-          <el-table-column prop="produced_quantity" label="Produced" width="100" />
+          <el-table-column
+            prop="produced_quantity"
+            label="Produced"
+            width="100"
+          />
           <el-table-column prop="scrap_quantity" label="Scrap" width="100" />
           <el-table-column prop="status" label="Status" width="120">
             <template #default="scope">
-              <el-tag :type="scope.row.status === 'completed' ? 'success' : 'warning'">
+              <el-tag
+                :type="scope.row.status === 'completed' ? 'success' : 'warning'"
+              >
                 {{ scope.row.status }}
               </el-tag>
             </template>
@@ -283,12 +378,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { ElMessage } from 'element-plus';
-import { getOrders } from '@/modules/orders/services/ordersService';
-import { getWorkstations, getProductionLines } from '@/modules/basic-data/services/basicDataService';
-import { getSchedulingByOrders } from '@/modules/planning/services/schedulingService';
-import { getProductionCounting, getOrderProgress } from '../services/productionCountingService';
+import { ref, onMounted, computed } from "vue";
+import { ElMessage } from "element-plus";
+import { getOrders } from "@/modules/orders/services/ordersService";
+import {
+  getWorkstations,
+  getProductionLines,
+} from "@/modules/basic-data/services/basicDataService";
+import { getSchedulingByOrders } from "@/modules/planning/services/schedulingService";
+import {
+  getProductionCounting,
+  getOrderProgress,
+} from "../services/productionCountingService";
 
 const ordersInProduction = ref([]);
 const allOrdersList = ref([]);
@@ -305,12 +406,20 @@ const orderProgress = ref({ produced: 0, scrap: 0 });
 const orderProductionRecords = ref([]);
 
 const activeOrders = computed(() => ordersInProduction.value.length);
-const activeOperations = computed(() => activeProductionRecords.value.filter(r => r.status === 'in_progress').length);
-const workstations = computed(() => workstationsList.value.filter(ws => ws.active).length);
-const productionLines = computed(() => productionLinesList.value.filter(pl => pl.active).length);
+const activeOperations = computed(
+  () =>
+    activeProductionRecords.value.filter((r) => r.status === "in_progress")
+      .length
+);
+const workstations = computed(
+  () => workstationsList.value.filter((ws) => ws.active).length
+);
+const productionLines = computed(
+  () => productionLinesList.value.filter((pl) => pl.active).length
+);
 const ordersIndex = computed(() => {
   const map = new Map();
-  allOrdersList.value.forEach(order => map.set(order.id, order));
+  allOrdersList.value.forEach((order) => map.set(order.id, order));
   return map;
 });
 
@@ -333,12 +442,19 @@ const buildProductionRecordIndex = (records) => {
     const assignIfNewer = (key) => {
       if (!key) return;
       const existing = index[orderId][key];
-      const recordTime = new Date(record.end_time || record.timestamp || record.start_time || Date.now());
+      const recordTime = new Date(
+        record.end_time || record.timestamp || record.start_time || Date.now()
+      );
       if (!existing) {
         index[orderId][key] = record;
         return;
       }
-      const existingTime = new Date(existing.end_time || existing.timestamp || existing.start_time || Date.now());
+      const existingTime = new Date(
+        existing.end_time ||
+          existing.timestamp ||
+          existing.start_time ||
+          Date.now()
+      );
       if (recordTime > existingTime) {
         index[orderId][key] = record;
       }
@@ -370,15 +486,15 @@ const findRecordForSchedule = (item) => {
 const getScheduleStatus = (item) => {
   const record = findRecordForSchedule(item);
   if (record) {
-    if (record.status === 'completed') return 'completed';
-    if (record.status === 'in_progress') return 'running';
+    if (record.status === "completed") return "completed";
+    if (record.status === "in_progress") return "running";
   }
-  if (!item.planned_start) return 'scheduled';
+  if (!item.planned_start) return "scheduled";
   const plannedStart = new Date(item.planned_start).getTime();
   if (!Number.isNaN(plannedStart) && plannedStart < Date.now()) {
-    return 'overdue';
+    return "overdue";
   }
-  return 'scheduled';
+  return "scheduled";
 };
 
 const calculateDelayMinutes = (item, record) => {
@@ -432,8 +548,12 @@ const scheduledOperationRows = computed(() => {
       };
     })
     .sort((a, b) => {
-      const timeA = a.plannedStart ? new Date(a.plannedStart).getTime() : Infinity;
-      const timeB = b.plannedStart ? new Date(b.plannedStart).getTime() : Infinity;
+      const timeA = a.plannedStart
+        ? new Date(a.plannedStart).getTime()
+        : Infinity;
+      const timeB = b.plannedStart
+        ? new Date(b.plannedStart).getTime()
+        : Infinity;
       const normalizedA = Number.isNaN(timeA) ? Infinity : timeA;
       const normalizedB = Number.isNaN(timeB) ? Infinity : timeB;
       if (normalizedA === normalizedB) return 0;
@@ -453,47 +573,55 @@ const scheduleStatusCounts = computed(() => {
   return base;
 });
 
-const scheduledTodayCount = computed(() =>
-  scheduledOperationRows.value.filter((row) => isSameDay(row.plannedStart)).length
+const scheduledTodayCount = computed(
+  () =>
+    scheduledOperationRows.value.filter((row) => isSameDay(row.plannedStart))
+      .length
 );
-const scheduleRunningCount = computed(() => scheduleStatusCounts.value.running || 0);
-const scheduleOverdueCount = computed(() => scheduleStatusCounts.value.overdue || 0);
+const scheduleRunningCount = computed(
+  () => scheduleStatusCounts.value.running || 0
+);
+const scheduleOverdueCount = computed(
+  () => scheduleStatusCounts.value.overdue || 0
+);
 const scheduleAdherenceRate = computed(() => {
   const total = scheduledOperationRows.value.length;
   if (!total) return 0;
-  const started = (scheduleStatusCounts.value.running || 0) + (scheduleStatusCounts.value.completed || 0);
+  const started =
+    (scheduleStatusCounts.value.running || 0) +
+    (scheduleStatusCounts.value.completed || 0);
   return Math.round((started / total) * 100);
 });
 
 const getScheduleTagType = (status) => {
   const map = {
-    scheduled: 'info',
-    running: 'warning',
-    completed: 'success',
-    overdue: 'danger',
+    scheduled: "info",
+    running: "warning",
+    completed: "success",
+    overdue: "danger",
   };
-  return map[status] || 'info';
+  return map[status] || "info";
 };
 
 const getScheduleStatusLabel = (status) => {
   const map = {
-    scheduled: 'Scheduled',
-    running: 'Running',
-    completed: 'Completed',
-    overdue: 'Overdue',
+    scheduled: "Scheduled",
+    running: "Running",
+    completed: "Completed",
+    overdue: "Overdue",
   };
   return map[status] || status;
 };
 
 const getDelayTagType = (minutes) => {
-  if (!minutes) return 'success';
-  if (minutes < 0) return 'info';
-  if (minutes <= 15) return 'warning';
-  return 'danger';
+  if (!minutes) return "success";
+  if (minutes < 0) return "info";
+  if (minutes <= 15) return "warning";
+  return "danger";
 };
 
 const formatDelay = (minutes) => {
-  if (!minutes) return 'On time';
+  if (!minutes) return "On time";
   const absMinutes = Math.abs(minutes);
   if (absMinutes >= 60) {
     const hours = (absMinutes / 60).toFixed(1);
@@ -508,23 +636,49 @@ const calculateProgress = (order) => {
   return Math.min(100, Math.round((done / order.planned_quantity) * 100));
 };
 
+const getJobStatusType = (state) => {
+  const types = {
+    pending: "info",
+    in_progress: "primary",
+    completed: "success",
+    waiting: "warning",
+  };
+  return types[state] || "info";
+};
+
+const getCurrentOperation = (order) => {
+  // Mock logic to find current operation
+  return "Assembly";
+};
+
+const getBufferUsage = (order) => {
+  // Mock buffer usage
+  return Math.floor(Math.random() * 100);
+};
+
+const bufferColors = [
+  { color: "#67c23a", percentage: 50 },
+  { color: "#e6a23c", percentage: 80 },
+  { color: "#f56c6c", percentage: 100 },
+];
+
 const getProgressStatus = (order) => {
   const progress = calculateProgress(order);
-  if (progress >= 100) return 'success';
-  if (progress >= 75) return '';
-  if (progress >= 50) return 'warning';
-  return 'exception';
+  if (progress >= 100) return "success";
+  if (progress >= 75) return "";
+  if (progress >= 50) return "warning";
+  return "exception";
 };
 
 const getStateType = (state) => {
   const types = {
-    pending: 'warning',
-    accepted: 'info',
-    in_progress: '',
-    completed: 'success',
-    declined: 'danger',
+    pending: "warning",
+    accepted: "info",
+    in_progress: "",
+    completed: "success",
+    declined: "danger",
   };
-  return types[state] || '';
+  return types[state] || "";
 };
 
 const calculateYield = (produced, scrap) => {
@@ -536,17 +690,17 @@ const calculateYield = (produced, scrap) => {
 };
 
 const formatDateTime = (dateStr) => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 const calculateDuration = (startTime) => {
-  if (!startTime) return '';
+  if (!startTime) return "";
   const start = new Date(startTime);
   const now = new Date();
   const diff = Math.floor((now - start) / 1000); // seconds
@@ -572,10 +726,10 @@ const viewOrderDetails = async (order) => {
 
     const records = await getProductionCounting({ order: order.id });
     orderProductionRecords.value = records.results || records;
-    
+
     showDetailsDialog.value = true;
   } catch (error) {
-    ElMessage.error('Failed to load order details');
+    ElMessage.error("Failed to load order details");
     console.error(error);
   }
 };
@@ -585,7 +739,7 @@ const viewOrderDetailsById = (orderId) => {
   if (order) {
     viewOrderDetails(order);
   } else {
-    ElMessage.warning('Order not available in current list');
+    ElMessage.warning("Order not available in current list");
   }
 };
 
@@ -599,13 +753,14 @@ const loadScheduleForOrders = async (orderIds) => {
   try {
     const [scheduleResponse, productionResponse] = await Promise.all([
       getSchedulingByOrders(orderIds),
-      getProductionCounting({ order__in: orderIds.join(',') }),
+      getProductionCounting({ order__in: orderIds.join(",") }),
     ]);
     scheduleItems.value = normalizeListResponse(scheduleResponse);
     const productionRecords = normalizeListResponse(productionResponse);
-    productionRecordsIndex.value = buildProductionRecordIndex(productionRecords);
+    productionRecordsIndex.value =
+      buildProductionRecordIndex(productionRecords);
   } catch (error) {
-    ElMessage.error('Failed to load schedule data');
+    ElMessage.error("Failed to load schedule data");
     console.error(error);
   } finally {
     scheduleLoading.value = false;
@@ -613,7 +768,7 @@ const loadScheduleForOrders = async (orderIds) => {
 };
 
 const resolveScheduleOrderIds = () => {
-  const eligibleStates = new Set(['pending', 'accepted', 'in_progress']);
+  const eligibleStates = new Set(["pending", "accepted", "in_progress"]);
   return allOrdersList.value
     .filter((order) => eligibleStates.has(order.state))
     .map((order) => order.id);
@@ -632,17 +787,13 @@ const refreshScheduleData = () => {
 const loadData = async () => {
   loading.value = true;
   try {
-    const [
-      ordersData,
-      workstationsData,
-      linesData,
-      activeRecordsData,
-    ] = await Promise.all([
-      getOrders({}),
-      getWorkstations(),
-      getProductionLines(),
-      getProductionCounting({ status: 'in_progress' }),
-    ]);
+    const [ordersData, workstationsData, linesData, activeRecordsData] =
+      await Promise.all([
+        getOrders({}),
+        getWorkstations(),
+        getProductionLines(),
+        getProductionCounting({ status: "in_progress" }),
+      ]);
 
     const allOrders = normalizeListResponse(ordersData);
     allOrdersList.value = allOrders;
@@ -651,14 +802,18 @@ const loadData = async () => {
     activeProductionRecords.value = normalizeListResponse(activeRecordsData);
 
     // Derive orders considered "in production": state in_progress OR has active production record
-    const activeOrderIds = new Set(activeProductionRecords.value.map(r => r.order));
-    ordersInProduction.value = allOrders.filter(o => o.state === 'in_progress' || activeOrderIds.has(o.id));
+    const activeOrderIds = new Set(
+      activeProductionRecords.value.map((r) => r.order)
+    );
+    ordersInProduction.value = allOrders.filter(
+      (o) => o.state === "in_progress" || activeOrderIds.has(o.id)
+    );
 
     // Sync schedule + production history for orders we care about
     const trackedOrderIds = resolveScheduleOrderIds();
     await loadScheduleForOrders(trackedOrderIds);
   } catch (error) {
-    ElMessage.error('Failed to load production data');
+    ElMessage.error("Failed to load production data");
     console.error(error);
   } finally {
     loading.value = false;
@@ -683,7 +838,7 @@ onMounted(() => {
 .stat-number {
   font-size: 36px;
   font-weight: bold;
-  color: #409EFF;
+  color: #409eff;
 }
 
 .stat-label {

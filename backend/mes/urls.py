@@ -7,4 +7,7 @@ urlpatterns = [
     path('deliveries/', include('mes.plugins.deliveries.api.urls')),
     path('production-counting/', include('mes.plugins.production_counting.api.urls')),
     path('scheduling/', include('mes.plugins.scheduling.api.urls')),
+    path('inventory/', include('mes.plugins.inventory.api.urls')),
+    path('maintenance/', include('mes.plugins.maintenance.api.urls')),
+    path('quality/', include('mes.plugins.quality.api.urls')),
 ]

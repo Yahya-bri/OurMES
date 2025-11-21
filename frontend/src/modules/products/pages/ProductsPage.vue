@@ -18,48 +18,54 @@
         </el-card>
       </div>
     </div>
-    
+
     <el-card>
       <!-- Toolbar -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-button 
+          <el-button
             v-if="canManageProducts"
-            type="primary" 
+            type="primary"
             :icon="Plus"
             @click="openCreateDialog"
           >
             Create Product
           </el-button>
-          <el-button :icon="Refresh" @click="loadProducts">
-            Refresh
-          </el-button>
-          <el-button 
+          <el-button :icon="Refresh" @click="loadProducts"> Refresh </el-button>
+          <el-button
             v-if="canManageProducts && selectedRows.length > 0"
             :icon="Delete"
             @click="bulkDelete"
           >
             Delete ({{ selectedRows.length }})
           </el-button>
-          <el-dropdown v-if="canManageProducts" trigger="click" @command="handleBulkAction">
-            <el-button :icon="MoreFilled">
-              Bulk Actions
-            </el-button>
+          <el-dropdown
+            v-if="canManageProducts"
+            trigger="click"
+            @command="handleBulkAction"
+          >
+            <el-button :icon="MoreFilled"> Bulk Actions </el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="activate" :icon="Select">Activate Selected</el-dropdown-item>
-                <el-dropdown-item command="deactivate" :icon="Close">Deactivate Selected</el-dropdown-item>
-                <el-dropdown-item command="export" :icon="Download">Export to CSV</el-dropdown-item>
+                <el-dropdown-item command="activate" :icon="Select"
+                  >Activate Selected</el-dropdown-item
+                >
+                <el-dropdown-item command="deactivate" :icon="Close"
+                  >Deactivate Selected</el-dropdown-item
+                >
+                <el-dropdown-item command="export" :icon="Download"
+                  >Export to CSV</el-dropdown-item
+                >
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </div>
-        
+
         <div class="toolbar-right">
           <el-input
             v-model="searchQuery"
             placeholder="Search by number, name, EAN..."
-            style="width: 280px;"
+            style="width: 280px"
             clearable
             @input="handleSearch"
           >
@@ -67,13 +73,13 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          
-          <el-select 
-            v-model="filterType" 
-            placeholder="Type" 
+
+          <el-select
+            v-model="filterType"
+            placeholder="Type"
             clearable
-            @change="loadProducts" 
-            style="margin-left: 10px; width: 160px;"
+            @change="loadProducts"
+            style="margin-left: 10px; width: 160px"
           >
             <el-option label="All Types" value="" />
             <el-option label="Component" value="component" />
@@ -82,13 +88,13 @@
             <el-option label="Waste" value="waste" />
             <el-option label="Package" value="package" />
           </el-select>
-          
-          <el-select 
-            v-model="filterActive" 
-            placeholder="Status" 
+
+          <el-select
+            v-model="filterActive"
+            placeholder="Status"
             clearable
-            @change="loadProducts" 
-            style="margin-left: 10px; width: 130px;"
+            @change="loadProducts"
+            style="margin-left: 10px; width: 130px"
           >
             <el-option label="All Status" value="" />
             <el-option label="Active" value="true" />
@@ -98,25 +104,42 @@
       </div>
 
       <!-- Products Table -->
-      <el-table 
-        :data="products" 
-        style="width: 100%; margin-top: 20px;" 
+      <el-table
+        :data="products"
+        style="width: 100%; margin-top: 20px"
         v-loading="loading"
         @selection-change="handleSelectionChange"
         row-key="id"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="number" label="Product Number" width="140" sortable>
+        <el-table-column
+          prop="number"
+          label="Product Number"
+          width="140"
+          sortable
+        >
           <template #default="scope">
             <el-link type="primary" @click="viewProductDetails(scope.row)">
               {{ scope.row.number }}
             </el-link>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="Name" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="global_type_of_material" label="Type" width="130">
+        <el-table-column
+          prop="name"
+          label="Name"
+          min-width="200"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="global_type_of_material"
+          label="Type"
+          width="130"
+        >
           <template #default="scope">
-            <el-tag :type="getTypeColor(scope.row.global_type_of_material)" size="small">
+            <el-tag
+              :type="getTypeColor(scope.row.global_type_of_material)"
+              size="small"
+            >
               {{ formatType(scope.row.global_type_of_material) }}
             </el-tag>
           </template>
@@ -131,8 +154,17 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="ean" label="EAN" width="140" show-overflow-tooltip />
-        <el-table-column label="Supplier/Producer" width="150" show-overflow-tooltip>
+        <el-table-column
+          prop="ean"
+          label="EAN"
+          width="140"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          label="Supplier/Producer"
+          width="150"
+          show-overflow-tooltip
+        >
           <template #default="scope">
             <div v-if="scope.row.supplier_name || scope.row.producer_name">
               <div v-if="scope.row.supplier_name" class="company-info">
@@ -149,8 +181,8 @@
         </el-table-column>
         <el-table-column label="Status" width="100" align="center">
           <template #default="scope">
-            <el-switch 
-              v-model="scope.row.active" 
+            <el-switch
+              v-model="scope.row.active"
               :disabled="!canManageProducts"
               @change="toggleActive(scope.row)"
             />
@@ -159,17 +191,33 @@
         <el-table-column label="Actions" width="220" fixed="right">
           <template #default="scope">
             <el-button-group>
-              <el-button size="small" :icon="View" @click="viewProductDetails(scope.row)">
+              <el-button
+                size="small"
+                :icon="View"
+                @click="viewProductDetails(scope.row)"
+              >
                 View
               </el-button>
-              <el-dropdown v-if="canManageProducts" trigger="click" @command="handleProductAction($event, scope.row)">
+              <el-dropdown
+                v-if="canManageProducts"
+                trigger="click"
+                @command="handleProductAction($event, scope.row)"
+              >
                 <el-button size="small" :icon="More" />
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="edit" :icon="Edit">Edit</el-dropdown-item>
-                    <el-dropdown-item command="copy" :icon="CopyDocument">Duplicate</el-dropdown-item>
-                    <el-dropdown-item command="routing" :icon="List">View Routing</el-dropdown-item>
-                    <el-dropdown-item divided command="delete" :icon="Delete">Delete</el-dropdown-item>
+                    <el-dropdown-item command="edit" :icon="Edit"
+                      >Edit</el-dropdown-item
+                    >
+                    <el-dropdown-item command="copy" :icon="CopyDocument"
+                      >Duplicate</el-dropdown-item
+                    >
+                    <el-dropdown-item command="routing" :icon="List"
+                      >View Routing</el-dropdown-item
+                    >
+                    <el-dropdown-item divided command="delete" :icon="Delete"
+                      >Delete</el-dropdown-item
+                    >
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -187,35 +235,46 @@
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSizeChange"
         @current-change="loadProducts"
-        style="margin-top: 20px; justify-content: flex-end;"
+        style="margin-top: 20px; justify-content: flex-end"
       />
     </el-card>
 
     <!-- Create/Edit Product Dialog -->
-    <el-dialog 
-      v-model="showCreateDialog" 
-      :title="editingProduct ? 'Edit Product' : 'Create New Product'" 
+    <el-dialog
+      v-model="showCreateDialog"
+      :title="editingProduct ? 'Edit Product' : 'Create New Product'"
       width="750px"
       :close-on-click-modal="false"
     >
-      <el-form :model="productForm" :rules="productRules" ref="productFormRef" label-width="160px">
+      <el-form
+        :model="productForm"
+        :rules="productRules"
+        ref="productFormRef"
+        label-width="160px"
+      >
         <el-tabs v-model="activeFormTab">
           <el-tab-pane label="Basic Information" name="basic">
             <el-form-item label="Product Number" prop="number">
               <el-input v-model="productForm.number" placeholder="AUTO" />
               <span class="form-hint">Leave empty for auto-generation</span>
             </el-form-item>
-            
+
             <el-form-item label="Product Name" prop="name">
               <el-input v-model="productForm.name" />
             </el-form-item>
-            
+
             <el-form-item label="External Number">
-              <el-input v-model="productForm.external_number" placeholder="External reference" />
+              <el-input
+                v-model="productForm.external_number"
+                placeholder="External reference"
+              />
             </el-form-item>
-            
+
             <el-form-item label="Type" prop="global_type_of_material">
-              <el-select v-model="productForm.global_type_of_material" style="width: 100%;">
+              <el-select
+                v-model="productForm.global_type_of_material"
+                style="width: 100%"
+              >
                 <el-option label="Component" value="component" />
                 <el-option label="Intermediate" value="intermediate" />
                 <el-option label="Final Product" value="final_product" />
@@ -223,123 +282,175 @@
                 <el-option label="Package" value="package" />
               </el-select>
             </el-form-item>
-            
+
             <el-form-item label="Entity Type">
-              <el-select v-model="productForm.entity_type" style="width: 100%;">
-                <el-option label="Particular Product" value="particular_product" />
+              <el-select v-model="productForm.entity_type" style="width: 100%">
+                <el-option
+                  label="Particular Product"
+                  value="particular_product"
+                />
                 <el-option label="Products Family" value="products_family" />
               </el-select>
             </el-form-item>
-            
+
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="Unit" prop="unit">
-                  <el-input v-model="productForm.unit" placeholder="e.g., pcs, kg, m" />
+                  <el-input
+                    v-model="productForm.unit"
+                    placeholder="e.g., pcs, kg, m"
+                  />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
                 <el-form-item label="Additional Unit">
-                  <el-input v-model="productForm.additional_unit" placeholder="e.g., box, pallet" />
+                  <el-input
+                    v-model="productForm.additional_unit"
+                    placeholder="e.g., box, pallet"
+                  />
                 </el-form-item>
               </el-col>
             </el-row>
-            
-            <el-form-item label="Conversion Factor" v-if="productForm.additional_unit">
-              <el-input-number 
-                v-model="productForm.conversion" 
-                :min="0.00001" 
+
+            <el-form-item
+              label="Conversion Factor"
+              v-if="productForm.additional_unit"
+            >
+              <el-input-number
+                v-model="productForm.conversion"
+                :min="0.00001"
                 :precision="5"
-                style="width: 100%;"
+                style="width: 100%"
               />
-              <span class="form-hint">1 {{ productForm.additional_unit }} = X {{ productForm.unit }}</span>
+              <span class="form-hint"
+                >1 {{ productForm.additional_unit }} = X
+                {{ productForm.unit }}</span
+              >
             </el-form-item>
-            
+
             <el-form-item label="EAN / Barcode">
-              <el-input v-model="productForm.ean" placeholder="EAN-13 or barcode" />
+              <el-input
+                v-model="productForm.ean"
+                placeholder="EAN-13 or barcode"
+              />
             </el-form-item>
-            
+
             <el-form-item label="Description">
-              <el-input 
-                v-model="productForm.description" 
-                type="textarea" 
+              <el-input
+                v-model="productForm.description"
+                type="textarea"
                 :rows="4"
                 placeholder="Product description, notes, specifications..."
               />
             </el-form-item>
-            
+
             <el-form-item label="Active">
               <el-switch v-model="productForm.active" />
             </el-form-item>
           </el-tab-pane>
-          
+
           <el-tab-pane label="Relationships" name="relations">
             <el-form-item label="Parent Product">
-              <el-select 
-                v-model="productForm.parent" 
-                filterable 
+              <el-select
+                v-model="productForm.parent"
+                filterable
                 clearable
                 placeholder="Select parent product family"
-                style="width: 100%;"
+                style="width: 100%"
               >
-                <el-option 
-                  v-for="product in familyProducts" 
-                  :key="product.id" 
-                  :label="`${product.number} - ${product.name}`" 
-                  :value="product.id" 
+                <el-option
+                  v-for="product in familyProducts"
+                  :key="product.id"
+                  :label="`${product.number} - ${product.name}`"
+                  :value="product.id"
                 />
               </el-select>
               <span class="form-hint">For product variants/families</span>
             </el-form-item>
-            
+
             <el-form-item label="Supplier">
-              <el-select 
-                v-model="productForm.supplier" 
-                filterable 
+              <el-select
+                v-model="productForm.supplier"
+                filterable
                 clearable
                 placeholder="Select supplier company"
-                style="width: 100%;"
+                style="width: 100%"
               >
-                <el-option 
-                  v-for="company in companies" 
-                  :key="company.id" 
-                  :label="`${company.number} - ${company.name}`" 
-                  :value="company.id" 
+                <el-option
+                  v-for="company in companies"
+                  :key="company.id"
+                  :label="`${company.number} - ${company.name}`"
+                  :value="company.id"
                 />
               </el-select>
             </el-form-item>
-            
+
             <el-form-item label="Producer">
-              <el-select 
-                v-model="productForm.producer" 
-                filterable 
+              <el-select
+                v-model="productForm.producer"
+                filterable
                 clearable
                 placeholder="Select producer company"
-                style="width: 100%;"
+                style="width: 100%"
               >
-                <el-option 
-                  v-for="company in companies" 
-                  :key="company.id" 
-                  :label="`${company.number} - ${company.name}`" 
-                  :value="company.id" 
+                <el-option
+                  v-for="company in companies"
+                  :key="company.id"
+                  :label="`${company.number} - ${company.name}`"
+                  :value="company.id"
                 />
               </el-select>
             </el-form-item>
           </el-tab-pane>
+
+          <el-tab-pane label="Work Masters (Recipes)" name="recipes">
+            <el-alert
+              title="Define the 'How-To' of production here"
+              type="info"
+              show-icon
+              :closable="false"
+              class="mb-4"
+            />
+
+            <el-form-item label="Default Recipe">
+              <el-input
+                v-model="productForm.default_recipe"
+                placeholder="e.g., Standard Assembly v1.0"
+              />
+            </el-form-item>
+
+            <el-form-item label="Workflow Steps">
+              <el-input
+                v-model="productForm.workflow_steps"
+                type="textarea"
+                :rows="6"
+                placeholder="1. Prepare material...&#10;2. Assemble part A...&#10;3. Inspect..."
+              />
+            </el-form-item>
+
+            <el-form-item label="Version Control">
+              <el-input
+                v-model="productForm.version"
+                placeholder="v1.0"
+                style="width: 120px"
+              />
+            </el-form-item>
+          </el-tab-pane>
         </el-tabs>
       </el-form>
-      
+
       <template #footer>
         <el-button @click="showCreateDialog = false">Cancel</el-button>
         <el-button type="primary" @click="saveProduct" :loading="saving">
-          {{ editingProduct ? 'Update' : 'Create' }}
+          {{ editingProduct ? "Update" : "Create" }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- Product Details Dialog -->
-    <el-dialog 
-      v-model="showDetailsDialog" 
-      :title="'Product Details: ' + (selectedProduct?.number || '')" 
+    <el-dialog
+      v-model="showDetailsDialog"
+      :title="'Product Details: ' + (selectedProduct?.number || '')"
       width="900px"
     >
       <div v-if="selectedProduct" class="product-details">
@@ -351,10 +462,12 @@
             {{ selectedProduct.name }}
           </el-descriptions-item>
           <el-descriptions-item label="External Number">
-            {{ selectedProduct.external_number || '-' }}
+            {{ selectedProduct.external_number || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="Type">
-            <el-tag :type="getTypeColor(selectedProduct.global_type_of_material)">
+            <el-tag
+              :type="getTypeColor(selectedProduct.global_type_of_material)"
+            >
               {{ formatType(selectedProduct.global_type_of_material) }}
             </el-tag>
           </el-descriptions-item>
@@ -363,29 +476,33 @@
           </el-descriptions-item>
           <el-descriptions-item label="Status">
             <el-tag :type="selectedProduct.active ? 'success' : 'info'">
-              {{ selectedProduct.active ? 'Active' : 'Inactive' }}
+              {{ selectedProduct.active ? "Active" : "Inactive" }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="Unit">
             {{ selectedProduct.unit }}
           </el-descriptions-item>
           <el-descriptions-item label="Additional Unit">
-            {{ selectedProduct.additional_unit || '-' }}
+            {{ selectedProduct.additional_unit || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="Conversion" v-if="selectedProduct.conversion">
-            1 {{ selectedProduct.additional_unit }} = {{ selectedProduct.conversion }} {{ selectedProduct.unit }}
+          <el-descriptions-item
+            label="Conversion"
+            v-if="selectedProduct.conversion"
+          >
+            1 {{ selectedProduct.additional_unit }} =
+            {{ selectedProduct.conversion }} {{ selectedProduct.unit }}
           </el-descriptions-item>
           <el-descriptions-item label="EAN / Barcode">
-            {{ selectedProduct.ean || '-' }}
+            {{ selectedProduct.ean || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="Parent Product">
-            {{ selectedProduct.parent_name || '-' }}
+            {{ selectedProduct.parent_name || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="Supplier">
-            {{ selectedProduct.supplier_name || '-' }}
+            {{ selectedProduct.supplier_name || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="Producer">
-            {{ selectedProduct.producer_name || '-' }}
+            {{ selectedProduct.producer_name || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="Created">
             {{ formatDateTime(selectedProduct.created_at) }}
@@ -394,7 +511,7 @@
             {{ formatDateTime(selectedProduct.updated_at) }}
           </el-descriptions-item>
           <el-descriptions-item label="Description" :span="2">
-            {{ selectedProduct.description || '-' }}
+            {{ selectedProduct.description || "-" }}
           </el-descriptions-item>
         </el-descriptions>
       </div>
@@ -403,22 +520,35 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { 
-  Plus, Refresh, Search, View, Edit, Delete, More, MoreFilled,
-  CopyDocument, List, ShoppingCart, Operation, Select, Close, Download
-} from '@element-plus/icons-vue';
-import { 
-  getProducts, 
-  createProduct, 
-  updateProduct, 
-  deleteProduct 
-} from '../services/productsService';
-import { getCompanies } from '@/modules/basic-data/services/basicDataService';
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '@/modules/auth/stores/authStore';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  Plus,
+  Refresh,
+  Search,
+  View,
+  Edit,
+  Delete,
+  More,
+  MoreFilled,
+  CopyDocument,
+  List,
+  ShoppingCart,
+  Operation,
+  Select,
+  Close,
+  Download,
+} from "@element-plus/icons-vue";
+import {
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "../services/productsService";
+import { getCompanies } from "@/modules/basic-data/services/basicDataService";
+import { storeToRefs } from "pinia";
+import { useAuthStore } from "@/modules/auth/stores/authStore";
+import { useRouter } from "vue-router";
 
 const router = useRouter();
 
@@ -428,9 +558,9 @@ const companies = ref([]);
 const familyProducts = ref([]);
 const loading = ref(false);
 const saving = ref(false);
-const searchQuery = ref('');
-const filterType = ref('');
-const filterActive = ref('');
+const searchQuery = ref("");
+const filterType = ref("");
+const filterActive = ref("");
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -443,7 +573,7 @@ const showDetailsDialog = ref(false);
 // Forms
 const editingProduct = ref(null);
 const selectedProduct = ref(null);
-const activeFormTab = ref('basic');
+const activeFormTab = ref("basic");
 const productFormRef = ref(null);
 
 // Stats
@@ -451,20 +581,20 @@ const stats = ref({
   total: 0,
   components: 0,
   intermediate: 0,
-  final_products: 0
+  final_products: 0,
 });
 
 const productForm = ref({
-  number: '',
-  name: '',
-  external_number: '',
-  global_type_of_material: 'component',
-  entity_type: 'particular_product',
-  unit: 'pcs',
-  additional_unit: '',
+  number: "",
+  name: "",
+  external_number: "",
+  global_type_of_material: "component",
+  entity_type: "particular_product",
+  unit: "pcs",
+  additional_unit: "",
   conversion: null,
-  ean: '',
-  description: '',
+  ean: "",
+  description: "",
   parent: null,
   supplier: null,
   producer: null,
@@ -473,26 +603,32 @@ const productForm = ref({
 
 const productRules = {
   name: [
-    { required: true, message: 'Please enter product name', trigger: 'blur' }
+    { required: true, message: "Please enter product name", trigger: "blur" },
   ],
-  unit: [
-    { required: true, message: 'Please enter unit', trigger: 'blur' }
-  ],
+  unit: [{ required: true, message: "Please enter unit", trigger: "blur" }],
   global_type_of_material: [
-    { required: true, message: 'Please select type', trigger: 'change' }
-  ]
+    { required: true, message: "Please select type", trigger: "change" },
+  ],
 };
 
 // Auth
 const auth = useAuthStore();
-const canManageProducts = computed(() => auth.hasRole(['Planner', 'Supervisor', 'Admin']));
+const canManageProducts = computed(() =>
+  auth.hasRole(["Planner", "Supervisor", "Admin"])
+);
 
 // Methods
 const calculateStats = () => {
   stats.value.total = products.value.length;
-  stats.value.components = products.value.filter(p => p.global_type_of_material === 'component').length;
-  stats.value.intermediate = products.value.filter(p => p.global_type_of_material === 'intermediate').length;
-  stats.value.final_products = products.value.filter(p => p.global_type_of_material === 'final_product').length;
+  stats.value.components = products.value.filter(
+    (p) => p.global_type_of_material === "component"
+  ).length;
+  stats.value.intermediate = products.value.filter(
+    (p) => p.global_type_of_material === "intermediate"
+  ).length;
+  stats.value.final_products = products.value.filter(
+    (p) => p.global_type_of_material === "final_product"
+  ).length;
 };
 
 const loadProducts = async () => {
@@ -504,14 +640,14 @@ const loadProducts = async () => {
       search: searchQuery.value,
     };
     if (filterType.value) params.global_type_of_material = filterType.value;
-    if (filterActive.value !== '') params.active = filterActive.value;
-    
+    if (filterActive.value !== "") params.active = filterActive.value;
+
     const data = await getProducts(params);
     products.value = data.results || data;
     total.value = data.count || products.value.length;
     calculateStats();
   } catch (error) {
-    ElMessage.error('Failed to load products');
+    ElMessage.error("Failed to load products");
     console.error(error);
   } finally {
     loading.value = false;
@@ -523,16 +659,16 @@ const loadCompanies = async () => {
     const data = await getCompanies();
     companies.value = data.results || data;
   } catch (error) {
-    console.error('Failed to load companies:', error);
+    console.error("Failed to load companies:", error);
   }
 };
 
 const loadFamilyProducts = async () => {
   try {
-    const data = await getProducts({ entity_type: 'products_family' });
+    const data = await getProducts({ entity_type: "products_family" });
     familyProducts.value = data.results || data;
   } catch (error) {
-    console.error('Failed to load family products:', error);
+    console.error("Failed to load family products:", error);
   }
 };
 
@@ -566,35 +702,35 @@ const editProduct = (product) => {
   productForm.value = {
     number: product.number,
     name: product.name,
-    external_number: product.external_number || '',
+    external_number: product.external_number || "",
     global_type_of_material: product.global_type_of_material,
-    entity_type: product.entity_type || 'particular_product',
+    entity_type: product.entity_type || "particular_product",
     unit: product.unit,
-    additional_unit: product.additional_unit || '',
+    additional_unit: product.additional_unit || "",
     conversion: product.conversion ? parseFloat(product.conversion) : null,
-    ean: product.ean || '',
-    description: product.description || '',
+    ean: product.ean || "",
+    description: product.description || "",
     parent: product.parent,
     supplier: product.supplier,
     producer: product.producer,
     active: product.active,
   };
-  activeFormTab.value = 'basic';
+  activeFormTab.value = "basic";
   showCreateDialog.value = true;
 };
 
 const resetForm = () => {
   productForm.value = {
-    number: '',
-    name: '',
-    external_number: '',
-    global_type_of_material: 'component',
-    entity_type: 'particular_product',
-    unit: 'pcs',
-    additional_unit: '',
+    number: "",
+    name: "",
+    external_number: "",
+    global_type_of_material: "component",
+    entity_type: "particular_product",
+    unit: "pcs",
+    additional_unit: "",
     conversion: null,
-    ean: '',
-    description: '',
+    ean: "",
+    description: "",
     parent: null,
     supplier: null,
     producer: null,
@@ -605,27 +741,27 @@ const resetForm = () => {
 
 const saveProduct = async () => {
   if (!productFormRef.value) return;
-  
+
   await productFormRef.value.validate(async (valid) => {
     if (!valid) return;
-    
+
     saving.value = true;
     try {
       const payload = { ...productForm.value };
-      
+
       if (editingProduct.value) {
         await updateProduct(editingProduct.value.id, payload);
-        ElMessage.success('Product updated successfully');
+        ElMessage.success("Product updated successfully");
       } else {
         await createProduct(payload);
-        ElMessage.success('Product created successfully');
+        ElMessage.success("Product created successfully");
       }
-      
+
       showCreateDialog.value = false;
       resetForm();
       loadProducts();
     } catch (error) {
-      ElMessage.error(error.response?.data?.error || 'Failed to save product');
+      ElMessage.error(error.response?.data?.error || "Failed to save product");
       console.error(error);
     } finally {
       saving.value = false;
@@ -635,16 +771,16 @@ const saveProduct = async () => {
 
 const handleProductAction = (command, product) => {
   switch (command) {
-    case 'edit':
+    case "edit":
       editProduct(product);
       break;
-    case 'copy':
+    case "copy":
       duplicateProduct(product);
       break;
-    case 'routing':
+    case "routing":
       router.push(`/routing?product=${product.id}`);
       break;
-    case 'delete':
+    case "delete":
       confirmDeleteProduct(product);
       break;
   }
@@ -652,23 +788,23 @@ const handleProductAction = (command, product) => {
 
 const duplicateProduct = (product) => {
   productForm.value = {
-    number: '',
-    name: product.name + ' (Copy)',
-    external_number: '',
+    number: "",
+    name: product.name + " (Copy)",
+    external_number: "",
     global_type_of_material: product.global_type_of_material,
-    entity_type: product.entity_type || 'particular_product',
+    entity_type: product.entity_type || "particular_product",
     unit: product.unit,
-    additional_unit: product.additional_unit || '',
+    additional_unit: product.additional_unit || "",
     conversion: product.conversion ? parseFloat(product.conversion) : null,
-    ean: '',
-    description: product.description || '',
+    ean: "",
+    description: product.description || "",
     parent: product.parent,
     supplier: product.supplier,
     producer: product.producer,
     active: true,
   };
   editingProduct.value = null;
-  activeFormTab.value = 'basic';
+  activeFormTab.value = "basic";
   showCreateDialog.value = true;
 };
 
@@ -676,21 +812,21 @@ const confirmDeleteProduct = async (product) => {
   try {
     await ElMessageBox.confirm(
       `Are you sure you want to delete product "${product.number}"? This action cannot be undone.`,
-      'Delete Product',
+      "Delete Product",
       {
-        confirmButtonText: 'Delete',
-        cancelButtonText: 'Cancel',
-        type: 'warning',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        confirmButtonClass: "el-button--danger",
       }
     );
-    
+
     await deleteProduct(product.id);
-    ElMessage.success('Product deleted successfully');
+    ElMessage.success("Product deleted successfully");
     loadProducts();
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('Failed to delete product');
+    if (error !== "cancel") {
+      ElMessage.error("Failed to delete product");
       console.error(error);
     }
   }
@@ -699,26 +835,28 @@ const confirmDeleteProduct = async (product) => {
 const toggleActive = async (product) => {
   try {
     await updateProduct(product.id, { active: product.active });
-    ElMessage.success(`Product ${product.active ? 'activated' : 'deactivated'}`);
+    ElMessage.success(
+      `Product ${product.active ? "activated" : "deactivated"}`
+    );
   } catch (error) {
     product.active = !product.active; // Revert on error
-    ElMessage.error('Failed to update product status');
+    ElMessage.error("Failed to update product status");
     console.error(error);
   }
 };
 
 const handleBulkAction = async (command) => {
   if (selectedRows.value.length === 0) {
-    ElMessage.warning('Please select products first');
+    ElMessage.warning("Please select products first");
     return;
   }
 
   switch (command) {
-    case 'activate':
-    case 'deactivate':
-      await bulkToggleActive(command === 'activate');
+    case "activate":
+    case "deactivate":
+      await bulkToggleActive(command === "activate");
       break;
-    case 'export':
+    case "export":
       exportToCSV();
       break;
   }
@@ -726,14 +864,14 @@ const handleBulkAction = async (command) => {
 
 const bulkToggleActive = async (active) => {
   try {
-    const promises = selectedRows.value.map(product => 
+    const promises = selectedRows.value.map((product) =>
       updateProduct(product.id, { active })
     );
     await Promise.all(promises);
     ElMessage.success(`${selectedRows.value.length} products updated`);
     loadProducts();
   } catch (error) {
-    ElMessage.error('Failed to update products');
+    ElMessage.error("Failed to update products");
     console.error(error);
   }
 };
@@ -742,87 +880,91 @@ const bulkDelete = async () => {
   try {
     await ElMessageBox.confirm(
       `Are you sure you want to delete ${selectedRows.value.length} selected products? This action cannot be undone.`,
-      'Bulk Delete',
+      "Bulk Delete",
       {
-        confirmButtonText: 'Delete',
-        cancelButtonText: 'Cancel',
-        type: 'warning',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        confirmButtonClass: "el-button--danger",
       }
     );
-    
-    const promises = selectedRows.value.map(product => deleteProduct(product.id));
+
+    const promises = selectedRows.value.map((product) =>
+      deleteProduct(product.id)
+    );
     await Promise.all(promises);
     ElMessage.success(`${selectedRows.value.length} products deleted`);
     loadProducts();
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('Failed to delete products');
+    if (error !== "cancel") {
+      ElMessage.error("Failed to delete products");
       console.error(error);
     }
   }
 };
 
 const exportToCSV = () => {
-  const headers = ['Number', 'Name', 'Type', 'Unit', 'EAN', 'Status'];
-  const data = selectedRows.value.map(p => [
+  const headers = ["Number", "Name", "Type", "Unit", "EAN", "Status"];
+  const data = selectedRows.value.map((p) => [
     p.number,
     p.name,
     p.global_type_of_material,
     p.unit,
-    p.ean || '',
-    p.active ? 'Active' : 'Inactive'
+    p.ean || "",
+    p.active ? "Active" : "Inactive",
   ]);
-  
+
   const csv = [
-    headers.join(','),
-    ...data.map(row => row.map(cell => `"${cell}"`).join(','))
-  ].join('\n');
-  
-  const blob = new Blob([csv], { type: 'text/csv' });
+    headers.join(","),
+    ...data.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+  ].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
   const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
-  a.download = `products_${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `products_${new Date().toISOString().split("T")[0]}.csv`;
   a.click();
   window.URL.revokeObjectURL(url);
-  
-  ElMessage.success('Products exported to CSV');
+
+  ElMessage.success("Products exported to CSV");
 };
 
 // Utility functions
 const getTypeColor = (type) => {
   const colors = {
-    component: '',
-    intermediate: 'warning',
-    final_product: 'success',
-    waste: 'danger',
-    package: 'info'
+    component: "",
+    intermediate: "warning",
+    final_product: "success",
+    waste: "danger",
+    package: "info",
   };
-  return colors[type] || '';
+  return colors[type] || "";
 };
 
 const formatType = (type) => {
-  return type.split('_').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
+  return type
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
 const formatEntityType = (type) => {
-  return type.split('_').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
+  return type
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
 const formatDateTime = (dateStr) => {
-  if (!dateStr) return '-';
+  if (!dateStr) return "-";
   const date = new Date(dateStr);
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -833,7 +975,6 @@ onMounted(() => {
   loadFamilyProducts();
 });
 </script>
-
 
 <style scoped>
 .products-page {
@@ -889,7 +1030,8 @@ onMounted(() => {
   gap: 12px;
 }
 
-.toolbar-left, .toolbar-right {
+.toolbar-left,
+.toolbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -939,13 +1081,14 @@ onMounted(() => {
   .stats-cards {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .toolbar {
     flex-direction: column;
     align-items: stretch;
   }
-  
-  .toolbar-left, .toolbar-right {
+
+  .toolbar-left,
+  .toolbar-right {
     width: 100%;
     justify-content: flex-start;
   }
