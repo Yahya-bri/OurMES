@@ -104,79 +104,12 @@ class TechnologyViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def tree(self, request, pk=None):
-        """Return hierarchical operation tree with input/output products and timing summary.
-        The tree is ordered by node_number lexical order. Each node includes:
-        - operation basic data
-        - parent node_number
-        - input_products / output_products lists
-        - effective timing (fallback to operation if override not set)
-        A root level summary aggregates total tj, tpz and time_next_operation.
-        """
+        """Return hierarchical operation tree with timing summary."""
         technology = self.get_object()
-        components = technology.operation_components.select_related('operation', 'parent').prefetch_related(
-            'input_products__product', 'output_products__product', 'operation__workstations'
-        ).order_by('node_number')
-
-        def effective_val(component, field):
-            override = getattr(component, field)
-            if override is not None:
-                return override
-            return getattr(component.operation, field)
-
-        tree_nodes = []
-        total_tj = 0
-        total_tpz = 0
-        total_next = 0
-        for comp in components:
-            tj = effective_val(comp, 'tj') or 0
-            tpz = effective_val(comp, 'tpz') or 0
-            tnext = effective_val(comp, 'time_next_operation') or 0
-            total_tj += tj
-            total_tpz += tpz
-            total_next += tnext
-            tree_nodes.append({
-                'node_number': comp.node_number,
-                'parent_node_number': comp.parent.node_number if comp.parent else None,
-                'priority': comp.priority,
-                'operation': {
-                    'number': comp.operation.number,
-                    'name': comp.operation.name,
-                    'workstations': [w.number for w in comp.operation.workstations.all()],
-                    'tj': tj,
-                    'tpz': tpz,
-                    'time_next_operation': tnext,
-                },
-                'input_products': [
-                    {
-                        'number': ip.product.number,
-                        'name': ip.product.name,
-                        'quantity': str(ip.quantity)
-                    } for ip in comp.input_products.all()
-                ],
-                'output_products': [
-                    {
-                        'number': op.product.number,
-                        'name': op.product.name,
-                        'quantity': str(op.quantity)
-                    } for op in comp.output_products.all()
-                ]
-            })
-
-        return Response({
-            'technology': {
-                'number': technology.number,
-                'name': technology.name,
-                'product': technology.product.number if technology.product_id else None,
-                'state': technology.state,
-            },
-            'summary': {
-                'total_tj': total_tj,
-                'total_tpz': total_tpz,
-                'total_time_next_operation': total_next,
-                'nodes': len(tree_nodes)
-            },
-            'tree': tree_nodes
-        })
+        # Delegate to service layer for business logic
+        from ..application.services import TechnologyService
+        tree_data = TechnologyService.build_operation_tree(technology)
+        return Response(tree_data)
 
 
 class OperationViewSet(viewsets.ModelViewSet):
