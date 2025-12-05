@@ -1,1 +1,4 @@
-"""Application services orchestrating domain logic for the plugin."""
+"""Application services for production scheduling."""
+from .services import SchedulingService
+
+__all__ = ['SchedulingService']
